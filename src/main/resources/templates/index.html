@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猫ちゃんホテル Cat Hotel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: "Helvetica Neue", Arial, sans-serif;
+        }
+        .hero-bg {
+            background-image:
+                linear-gradient(to right, rgba(17,24,39,0.72), rgba(17,24,39,0.35)),
+                url('https://images.unsplash.com/photo-1519052537078-e6302a4968d4?auto=format&fit=crop&w=1600&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+        .cat-card:hover {
+            transform: translateY(-4px);
+            transition: all 0.25s ease;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 text-slate-800">
+
+<header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-amber-100 shadow-sm">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <!-- 左侧：Logo + 桌面导航 -->
+        <div class="flex items-center min-w-0">
+            <a href="#" class="flex items-center gap-3 shrink-0">
+                <div class="w-11 h-11 rounded-full bg-amber-400 flex items-center justify-center text-2xl shadow">
+                    🐾
+                </div>
+                <div>
+                    <p id="brandTitle" class="text-xl font-bold text-slate-900">猫ちゃんホテル</p>
+                    <p class="text-xs text-slate-500">Cat Hotel & Cozy Stay</p>
+                </div>
+            </a>
+
+            <nav class="hidden md:flex items-center gap-6 text-sm font-medium ml-10">
+                <a href="#about" class="hover:text-amber-600 whitespace-nowrap" id="navAbout">私たちについて</a>
+                <a href="#rooms" class="hover:text-amber-600 whitespace-nowrap" id="navRooms">お部屋紹介</a>
+                <a href="#gallery" class="hover:text-amber-600 whitespace-nowrap" id="navGallery">猫ちゃんギャラリー</a>
+                <a href="#services" class="hover:text-amber-600 whitespace-nowrap" id="navServices">サービス内容</a>
+                <a href="#booking" class="hover:text-amber-600 whitespace-nowrap" id="navBooking">ご予約</a>
+                <a href="#faq" class="hover:text-amber-600 whitespace-nowrap" id="navFaq">よくある質問</a>
+            </nav>
+        </div>
+
+        <!-- 右侧：桌面按钮组 -->
+        <div class="hidden md:flex items-center gap-3 shrink-0 ml-6">
+            <button id="langToggle"
+                    type="button"
+                    class="rounded-full border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 whitespace-nowrap">
+                中文
+            </button>
+
+            <a href="#booking" id="headerBookingBtnDesktop"
+               class="inline-flex items-center rounded-full bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-amber-600 whitespace-nowrap">
+                今すぐ予約
+            </a>
+
+            <a href="/inquiry" id="headerInquiryBtnDesktop"
+               class="inline-flex items-center rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-slate-800 whitespace-nowrap">
+                予約照会
+            </a>
+        </div>
+
+        <!-- 手机端按钮组 -->
+        <div class="md:hidden flex items-center gap-2 shrink-0">
+            <button id="langToggleMobile"
+                    type="button"
+                    class="rounded-full border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 whitespace-nowrap">
+                中文
+            </button>
+
+            <a href="#booking" id="headerBookingBtn"
+               class="inline-flex items-center rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-amber-600 whitespace-nowrap">
+                今すぐ予約
+            </a>
+
+            <a href="/inquiry" id="headerInquiryBtn"
+               class="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800 whitespace-nowrap">
+                予約照会
+            </a>
+        </div>
+    </div>
+</header>
+
+<section class="hero-bg min-h-[88vh] flex items-center">
+    <div class="max-w-7xl mx-auto px-6 py-20 w-full">
+        <div class="max-w-2xl text-white">
+            <span id="heroBadge" class="inline-block rounded-full bg-white/15 px-4 py-1 text-sm backdrop-blur mb-6">
+                24時間見守り・個室完備・毎日お世話
+            </span>
+            <h1 id="heroTitle" class="text-4xl md:text-6xl font-extrabold leading-tight">
+                大切な猫ちゃんに、<br>
+                おうちのような安心できる休日を
+            </h1>
+            <p id="heroDesc" class="mt-6 text-lg text-slate-100 leading-8">
+                猫ちゃんホテルでは、出張・旅行・お引っ越し・短期預かりの際にも安心してお任せいただける、
+                静かで清潔、安全な滞在空間をご用意しています。
+                すべての猫ちゃんに個別スペース、毎日の健康チェック、ふれあいタイム、写真レポートをご提供し、
+                離れていても安心して見守れる環境を整えています。
+            </p>
+
+            <div class="mt-8 flex flex-wrap gap-4">
+                <a href="#rooms" id="heroBtnRooms" class="rounded-full bg-amber-500 px-6 py-3 text-base font-semibold text-white shadow hover:bg-amber-600">
+                    お部屋を見る
+                </a>
+                <a href="#gallery" id="heroBtnGallery" class="rounded-full border border-white/60 px-6 py-3 text-base font-semibold text-white hover:bg-white/10">
+                    猫ちゃんの写真を見る
+                </a>
+            </div>
+
+            <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="rounded-2xl bg-white/10 p-4 backdrop-blur">
+                    <p class="text-2xl font-bold">98%</p>
+                    <p id="heroStat1" class="text-sm text-slate-200">リピート率</p>
+                </div>
+                <div class="rounded-2xl bg-white/10 p-4 backdrop-blur">
+                    <p class="text-2xl font-bold">1対1</p>
+                    <p id="heroStat2" class="text-sm text-slate-200">健康チェック</p>
+                </div>
+                <div class="rounded-2xl bg-white/10 p-4 backdrop-blur">
+                    <p class="text-2xl font-bold">365日</p>
+                    <p id="heroStat3" class="text-sm text-slate-200">年中受付</p>
+                </div>
+                <div class="rounded-2xl bg-white/10 p-4 backdrop-blur">
+                    <p class="text-2xl font-bold">毎日</p>
+                    <p id="heroStat4" class="text-sm text-slate-200">写真レポート</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="about" class="py-20">
+    <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-10 items-center">
+        <div>
+            <img
+                    src="https://images.unsplash.com/photo-1511044568932-338cba0ad803?auto=format&fit=crop&w=1200&q=80"
+                    alt="あたたかい猫ちゃんの空間"
+                    class="rounded-3xl shadow-lg w-full h-[420px] object-cover"
+            >
+        </div>
+        <div>
+            <p id="aboutLabel" class="text-amber-600 font-semibold mb-3">猫ちゃんホテルについて</p>
+            <h2 id="aboutTitle" class="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">
+                ただのお預かりではなく、<br>猫ちゃんのための心地よい小さな休暇を
+            </h2>
+            <p id="aboutDesc" class="mt-6 text-slate-600 leading-8">
+                猫ちゃんは環境の変化にとても敏感です。
+                そのため当ホテルでは、静かなゾーニング、個室設計、やさしい照明、上下運動できる設備を取り入れ、
+                初めての場所でもできるだけストレスを感じにくい空間づくりを心がけています。
+                ご滞在中はごはん・排泄・元気の様子・ふれあいの記録を取り、
+                ご家族がいつでも安心できるよう丁寧にサポートいたします。
+            </p>
+            <div class="mt-8 grid sm:grid-cols-2 gap-4">
+                <div class="rounded-2xl bg-white p-5 shadow-sm border border-amber-100">
+                    <p id="aboutCard1Title" class="font-bold text-lg">個室でのご宿泊</p>
+                    <p id="aboutCard1Desc" class="text-sm text-slate-600 mt-2">ストレスを減らし、落ち着いて過ごせるようプライベート空間をご用意しています。</p>
+                </div>
+                <div class="rounded-2xl bg-white p-5 shadow-sm border border-amber-100">
+                    <p id="aboutCard2Title" class="font-bold text-lg">毎日のふれあいタイム</p>
+                    <p id="aboutCard2Desc" class="text-sm text-slate-600 mt-2">遊びやブラッシングなど、その子の性格に合わせて無理のない関わりを行います。</p>
+                </div>
+                <div class="rounded-2xl bg-white p-5 shadow-sm border border-amber-100">
+                    <p id="aboutCard3Title" class="font-bold text-lg">いつものごはんで安心</p>
+                    <p id="aboutCard3Desc" class="text-sm text-slate-600 mt-2">普段のフードやおやつ、お薬の持ち込みにも対応しています。</p>
+                </div>
+                <div class="rounded-2xl bg-white p-5 shadow-sm border border-amber-100">
+                    <p id="aboutCard4Title" class="font-bold text-lg">写真・動画のご報告</p>
+                    <p id="aboutCard4Desc" class="text-sm text-slate-600 mt-2">毎日のお写真や動画で、離れていてもご様子を確認できます。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="rooms" class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-6">
+        <div class="text-center max-w-2xl mx-auto">
+            <p id="roomsLabel" class="text-amber-600 font-semibold">お部屋紹介</p>
+            <h2 id="roomsTitle" class="text-3xl md:text-4xl font-bold mt-2">猫ちゃんの性格に合わせたお部屋をご用意</h2>
+            <p id="roomsDesc" class="text-slate-600 mt-4 leading-8">
+                ベーシックなお部屋から、広めのラグジュアリールームまで。
+                すべてのお部屋にベッド、トイレ、ステップ、かくれスペースをご用意しています。
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8 mt-12">
+            <div class="cat-card rounded-3xl overflow-hidden bg-amber-50 border border-amber-100 shadow-sm">
+                <img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=1200&q=80" alt="スタンダードルーム" class="h-64 w-full object-cover">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <h3 id="room1Title" class="text-2xl font-bold">スタンダードルーム</h3>
+                        <span id="room1Price" class="text-amber-600 font-bold">¥128/泊</span>
+                    </div>
+                    <p id="room1Desc" class="mt-4 text-slate-600 leading-7">
+                        ほとんどの猫ちゃんにおすすめの、落ち着いて過ごせる快適なお部屋です。
+                    </p>
+                    <ul class="mt-4 space-y-2 text-sm text-slate-700">
+                        <li id="room1Item1">✔ 個室タイプ</li>
+                        <li id="room1Item2">✔ 毎日の健康チェック</li>
+                        <li id="room1Item3">✔ 毎日の写真レポート</li>
+                        <li id="room1Item4">✔ 基本のふれあい 1 回</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="cat-card rounded-3xl overflow-hidden bg-slate-900 text-white shadow-lg">
+                <img src="https://images.unsplash.com/photo-1545249390-6bdfa286032f?auto=format&fit=crop&w=1200&q=80" alt="ラグジュアリールーム" class="h-64 w-full object-cover">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <h3 id="room2Title" class="text-2xl font-bold">サンシャイン・ラグジュアリールーム</h3>
+                        <span id="room2Price" class="text-amber-300 font-bold">¥198/泊</span>
+                    </div>
+                    <p id="room2Desc" class="mt-4 text-slate-200 leading-7">
+                        広めのお部屋で、活発な猫ちゃんや上下運動が好きな子にぴったりです。
+                    </p>
+                    <ul class="mt-4 space-y-2 text-sm text-slate-100">
+                        <li id="room2Item1">✔ 大きめのキャットステップ</li>
+                        <li id="room2Item2">✔ 毎日のふれあい 2 回</li>
+                        <li id="room2Item3">✔ 動画レポート付き</li>
+                        <li id="room2Item4">✔ ブラッシング追加対応可</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="cat-card rounded-3xl overflow-hidden bg-amber-50 border border-amber-100 shadow-sm">
+                <img src="https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=1200&q=80" alt="ファミリー2匹ルーム" class="h-64 w-full object-cover">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <h3 id="room3Title" class="text-2xl font-bold">ファミリー2匹ルーム</h3>
+                        <span id="room3Price" class="text-amber-600 font-bold">¥258/泊</span>
+                    </div>
+                    <p id="room3Desc" class="mt-4 text-slate-600 leading-7">
+                        仲の良い2匹のご家族向け。いつもの相棒と一緒に過ごせる安心プランです。
+                    </p>
+                    <ul class="mt-4 space-y-2 text-sm text-slate-700">
+                        <li id="room3Item1">✔ 2匹で利用できる空間</li>
+                        <li id="room3Item2">✔ 食器・トイレ複数設置</li>
+                        <li id="room3Item3">✔ 毎日のご様子記録</li>
+                        <li id="room3Item4">✔ ごはんの個別対応可</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="gallery" class="py-20">
+    <div class="max-w-7xl mx-auto px-6">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
+            <div>
+                <p id="galleryLabel" class="text-amber-600 font-semibold">猫ちゃんギャラリー</p>
+                <h2 id="galleryTitle" class="text-3xl md:text-4xl font-bold mt-2">ご宿泊中のかわいい日常</h2>
+            </div>
+            <p id="galleryDesc" class="text-slate-600 max-w-xl leading-7">
+                こちらはイメージ写真です。あとで実際のホテル写真やオリジナル画像に差し替えてご利用いただけます。
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=80" alt="猫の写真1" class="rounded-3xl h-80 w-full object-cover shadow">
+            <img src="https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=900&q=80" alt="猫の写真2" class="rounded-3xl h-80 w-full object-cover shadow">
+            <img src="https://images.unsplash.com/photo-1513245543132-31f507417b26?auto=format&fit=crop&w=900&q=80" alt="猫の写真3" class="rounded-3xl h-80 w-full object-cover shadow">
+            <img src="https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80" alt="猫の写真4" class="rounded-3xl h-80 w-full object-cover shadow">
+        </div>
+    </div>
+</section>
+
+<section id="services" class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-6">
+        <div class="text-center max-w-2xl mx-auto">
+            <p id="servicesLabel" class="text-amber-600 font-semibold">サービス内容</p>
+            <h2 id="servicesTitle" class="text-3xl md:text-4xl font-bold mt-2">大切な猫ちゃんを丁寧にお世話します</h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
+            <div class="rounded-3xl p-6 bg-amber-50 border border-amber-100">
+                <div class="text-3xl">🍽️</div>
+                <h3 id="service1Title" class="mt-4 text-xl font-bold">ごはんのお世話</h3>
+                <p id="service1Desc" class="mt-3 text-slate-600 leading-7">いつものフードやウェット、療法食、おやつにも対応可能です。</p>
+            </div>
+            <div class="rounded-3xl p-6 bg-amber-50 border border-amber-100">
+                <div class="text-3xl">🩺</div>
+                <h3 id="service2Title" class="mt-4 text-xl font-bold">健康チェック</h3>
+                <p id="service2Desc" class="mt-3 text-slate-600 leading-7">食欲・排泄・元気の様子などを毎日確認し、必要時はご連絡します。</p>
+            </div>
+            <div class="rounded-3xl p-6 bg-amber-50 border border-amber-100">
+                <div class="text-3xl">🎾</div>
+                <h3 id="service3Title" class="mt-4 text-xl font-bold">ふれあいタイム</h3>
+                <p id="service3Desc" class="mt-3 text-slate-600 leading-7">遊びやブラッシングなど、その子の性格に合わせて対応します。</p>
+            </div>
+            <div class="rounded-3xl p-6 bg-amber-50 border border-amber-100">
+                <div class="text-3xl">📷</div>
+                <h3 id="service4Title" class="mt-4 text-xl font-bold">毎日のご報告</h3>
+                <p id="service4Desc" class="mt-3 text-slate-600 leading-7">お写真や動画をお送りし、離れていても安心していただけます。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="booking" class="py-20">
+    <div class="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-10 items-start">
+        <div>
+            <p id="bookingLabel" class="text-amber-600 font-semibold">ご予約</p>
+            <h2 id="bookingTitle" class="text-3xl md:text-4xl font-bold mt-2">ご希望内容をご入力ください</h2>
+            <p id="bookingDesc" class="mt-4 text-slate-600 leading-8">
+                初めてのご利用は、猫ちゃんのお名前・年齢・性格・ごはんの内容・ワクチン状況・注意事項などを
+                できるだけ詳しくご記入いただけるとご案内がスムーズです。
+            </p>
+
+            <div class="mt-8 bg-white rounded-3xl shadow-sm border border-amber-100 p-6">
+                <h3 id="noticeTitle" class="text-xl font-bold">ご利用前のご案内</h3>
+                <ul class="mt-4 space-y-3 text-slate-600 leading-7">
+                    <li id="notice1">• できるだけ1年以内のワクチン接種情報をご用意ください</li>
+                    <li id="notice2">• 急なフード変更を避けるため、普段のごはんの持参をおすすめします</li>
+                    <li id="notice3">• お薬がある場合は、回数・量・与え方をご記入ください</li>
+                    <li id="notice4">• 緊張しやすい子は、いつもの毛布やおもちゃがあると安心です</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-lg border border-amber-100 p-8">
+            <form th:action="@{/reserve}" th:object="${reservationForm}" method="post" class="grid gap-5">
+                <div th:if="${successMessage}" class="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+                    <p th:text="${successMessage}"></p>
+                </div>
+
+                <div th:if="${saveError}" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+                    <p th:text="${saveError}"></p>
+                </div>
+
+                <div>
+                    <label id="formLabelName" class="block text-sm font-semibold mb-2">飼い主さまのお名前</label>
+                    <input id="inputName" th:field="*{ownerName}" type="text"
+                           placeholder="お名前をご入力ください"
+                           class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <p th:if="${#fields.hasErrors('ownerName')}" th:errors="*{ownerName}" class="mt-2 text-sm text-red-600"></p>
+                </div>
+
+                <div class="grid sm:grid-cols-2 gap-5">
+                    <div>
+                        <label id="formLabelPhone" class="block text-sm font-semibold mb-2">お電話番号</label>
+                        <input id="inputPhone" th:field="*{phone}" type="text"
+                               placeholder="例：090-1234-5678"
+                               class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <p th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}" class="mt-2 text-sm text-red-600"></p>
+                    </div>
+                    <div>
+                        <label id="formLabelEmail" class="block text-sm font-semibold mb-2">メールアドレス</label>
+                        <input id="inputEmail" th:field="*{email}" type="email"
+                               placeholder="example@mail.com"
+                               class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <p th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="mt-2 text-sm text-red-600"></p>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-5">
+
+                    <div>
+                        <label id="formLabelCheckInDate" class="block text-sm font-semibold text-slate-700 mb-2">チェックイン日</label>
+                        <input id="inputCheckInDate" th:field="*{checkInDate}" type="date"
+                               th:attr="min=${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}"
+                               class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <p th:if="${#fields.hasErrors('checkInDate')}" th:errors="*{checkInDate}" class="mt-2 text-sm text-red-600"></p>
+                    </div>
+
+                    <div>
+                        <label id="formLabelCheckOutDate" class="block text-sm font-semibold text-slate-700 mb-2">チェックアウト日</label>
+                        <input id="inputCheckOutDate" th:field="*{checkOutDate}" type="date"
+                               th:attr="min=${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}"
+                               class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <p th:if="${#fields.hasErrors('checkOutDate')}" th:errors="*{checkOutDate}" class="mt-2 text-sm text-red-600"></p>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-5">
+
+                    <div>
+                        <label id="formLabelRoom" class="block text-sm font-semibold text-slate-700 mb-2">ご希望のお部屋</label>
+                        <select id="selectRoom" th:field="*{roomType}" disabled
+                                class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-slate-100 disabled:text-slate-400">
+                            <option id="roomOptionEmpty" value="">先に日付を選択してください</option>
+                            <option id="roomOption1" value="スタンダードルーム">スタンダードルーム</option>
+                            <option id="roomOption2" value="サンシャイン・ラグジュアリールーム">サンシャイン・ラグジュアリールーム</option>
+                            <option id="roomOption3" value="ファミリー2匹ルーム">ファミリー2匹ルーム</option>
+                        </select>
+                        <p id="roomHelpText" class="mt-2 text-sm text-slate-500">チェックイン日とチェックアウト日を選択すると、空いているお部屋が表示されます。</p>
+                        <p th:if="${#fields.hasErrors('roomType')}" th:errors="*{roomType}" class="mt-2 text-sm text-red-600"></p>
+                    </div>
+
+                    <div>
+                        <label id="formLabelCatName" class="block text-sm font-semibold text-slate-700 mb-2">猫ちゃんのお名前</label>
+                        <input id="inputCatName" th:field="*{catName}" type="text"
+                               class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <p th:if="${#fields.hasErrors('catName')}" th:errors="*{catName}" class="mt-2 text-sm text-red-600"></p>
+                    </div>
+                </div>
+
+                <div>
+                    <label id="formLabelNote" class="block text-sm font-semibold mb-2">備考・ご要望</label>
+                    <textarea id="inputNote" th:field="*{note}" rows="4"
+                              placeholder="例：怖がり、投薬あり、特定のフードのみ、初対面が苦手 など"
+                              class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400"></textarea>
+                    <p th:if="${#fields.hasErrors('note')}" th:errors="*{note}" class="mt-2 text-sm text-red-600"></p>
+                </div>
+
+                <button id="submitBtn" type="submit" class="rounded-2xl bg-slate-900 px-6 py-4 text-white font-semibold hover:bg-slate-800">
+                    予約内容を送信する
+                </button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section id="faq" class="py-20 bg-white">
+    <div class="max-w-5xl mx-auto px-6">
+        <div class="text-center">
+            <p id="faqLabel" class="text-amber-600 font-semibold">よくある質問</p>
+            <h2 id="faqTitle" class="text-3xl md:text-4xl font-bold mt-2">初めてのご利用前によくいただくご質問</h2>
+        </div>
+
+        <div class="mt-10 space-y-4">
+            <div class="rounded-2xl border border-slate-200 p-6">
+                <h3 id="faq1Q" class="font-bold text-lg">初めての宿泊で緊張しませんか？</h3>
+                <p id="faq1A" class="text-slate-600 mt-2 leading-7">
+                    新しい環境に慣れるまで時間がかかる子もいます。無理に触れ合わず、その子のペースを大切にしています。
+                </p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 p-6">
+                <h3 id="faq2Q" class="font-bold text-lg">ごはんやおもちゃは持参できますか？</h3>
+                <p id="faq2A" class="text-slate-600 mt-2 leading-7">
+                    はい、可能です。いつもの匂いやお気に入りの物があると、より安心して過ごせます。
+                </p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 p-6">
+                <h3 id="faq3Q" class="font-bold text-lg">他の猫ちゃんと一緒になりますか？</h3>
+                <p id="faq3A" class="text-slate-600 mt-2 leading-7">
+                    基本は個室でのお預かりです。知らない猫ちゃん同士が直接接触しないよう配慮しています。
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="bg-slate-950 text-slate-300 pt-16 pb-10">
+    <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-10">
+        <div>
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-full bg-amber-400 flex items-center justify-center text-2xl">
+                    🐱
+                </div>
+                <div>
+                    <p id="footerBrandTitle" class="text-xl font-bold text-white">猫ちゃんホテル</p>
+                    <p class="text-xs text-slate-400">Cat Hotel & Cozy Stay</p>
+                </div>
+            </div>
+            <p id="footerBrandDesc" class="mt-4 text-sm leading-7 text-slate-400">
+                猫ちゃんが安心して過ごせる、清潔でやさしいお預かり空間をご提供します。
+            </p>
+        </div>
+
+        <div>
+            <h4 id="footerMenuTitle" class="text-white font-bold mb-4">サイトメニュー</h4>
+            <ul class="space-y-2 text-sm">
+                <li><a href="#about" id="footerMenu1" class="hover:text-amber-300">私たちについて</a></li>
+                <li><a href="#rooms" id="footerMenu2" class="hover:text-amber-300">お部屋紹介</a></li>
+                <li><a href="#services" id="footerMenu3" class="hover:text-amber-300">サービス内容</a></li>
+                <li><a href="#booking" id="footerMenu4" class="hover:text-amber-300">ご予約</a></li>
+            </ul>
+        </div>
+
+        <div>
+            <h4 id="footerInfoTitle" class="text-white font-bold mb-4">営業情報</h4>
+            <ul class="space-y-2 text-sm text-slate-400">
+                <li id="footerInfo1">営業時間：09:00 - 20:00</li>
+                <li id="footerInfo2">住所：東京都ねこねこ区しあわせ通り88番地</li>
+                <li id="footerInfo3">電話：03-1234-5678</li>
+                <li id="footerInfo4">Email：meow@cathotel.jp</li>
+            </ul>
+        </div>
+
+        <div>
+            <h4 id="footerSnsTitle" class="text-white font-bold mb-4">SNS</h4>
+            <p id="footerSnsDesc" class="text-sm text-slate-400 leading-7">
+                ご宿泊中の猫ちゃんの様子や、ホテルの日常、ちょっとした豆知識などを発信しています。
+            </p>
+            <div class="mt-4 flex gap-3">
+                <span class="rounded-full bg-white/10 px-4 py-2 text-sm">Instagram</span>
+                <span class="rounded-full bg-white/10 px-4 py-2 text-sm">X / Twitter</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-6 mt-12 pt-6 border-t border-white/10 text-sm text-slate-500 flex flex-col md:flex-row justify-between gap-3">
+        <p id="footerCopyright">© 2026 猫ちゃんホテル Cat Hotel. All Rights Reserved.</p>
+        <p id="footerLastLine">大切な小さなお客さまを、心を込めてお迎えします。</p>
+    </div>
+</footer>
+
+<script>
+    let currentLang = 'ja';
+
+    const translations = {
+        ja: {
+            title: '猫ちゃんホテル Cat Hotel',
+            brandTitle: '猫ちゃんホテル',
+            navAbout: '私たちについて',
+            navRooms: 'お部屋紹介',
+            navGallery: '猫ちゃんギャラリー',
+            navServices: 'サービス内容',
+            navBooking: 'ご予約',
+            navFaq: 'よくある質問',
+            headerBookingBtn: '今すぐ予約',
+            headerBookingBtnDesktop: '今すぐ予約',
+            headerInquiryBtn: '予約照会',
+            headerInquiryBtnDesktop: '予約照会',
+
+            heroBadge: '24時間見守り・個室完備・毎日お世話',
+            heroTitle: '大切な猫ちゃんに、<br>おうちのような安心できる休日を',
+            heroDesc: '猫ちゃんホテルでは、出張・旅行・お引っ越し・短期預かりの際にも安心してお任せいただける、静かで清潔、安全な滞在空間をご用意しています。すべての猫ちゃんに個別スペース、毎日の健康チェック、ふれあいタイム、写真レポートをご提供し、離れていても安心して見守れる環境を整えています。',
+            heroBtnRooms: 'お部屋を見る',
+            heroBtnGallery: '猫ちゃんの写真を見る',
+            heroStat1: 'リピート率',
+            heroStat2: '健康チェック',
+            heroStat3: '年中受付',
+            heroStat4: '写真レポート',
+
+            aboutLabel: '猫ちゃんホテルについて',
+            aboutTitle: 'ただのお預かりではなく、<br>猫ちゃんのための心地よい小さな休暇を',
+            aboutDesc: '猫ちゃんは環境の変化にとても敏感です。そのため当ホテルでは、静かなゾーニング、個室設計、やさしい照明、上下運動できる設備を取り入れ、初めての場所でもできるだけストレスを感じにくい空間づくりを心がけています。ご滞在中はごはん・排泄・元気の様子・ふれあいの記録を取り、ご家族がいつでも安心できるよう丁寧にサポートいたします。',
+            aboutCard1Title: '個室でのご宿泊',
+            aboutCard1Desc: 'ストレスを減らし、落ち着いて過ごせるようプライベート空間をご用意しています。',
+            aboutCard2Title: '毎日のふれあいタイム',
+            aboutCard2Desc: '遊びやブラッシングなど、その子の性格に合わせて無理のない関わりを行います。',
+            aboutCard3Title: 'いつものごはんで安心',
+            aboutCard3Desc: '普段のフードやおやつ、お薬の持ち込みにも対応しています。',
+            aboutCard4Title: '写真・動画のご報告',
+            aboutCard4Desc: '毎日のお写真や動画で、離れていてもご様子を確認できます。',
+
+            roomsLabel: 'お部屋紹介',
+            roomsTitle: '猫ちゃんの性格に合わせたお部屋をご用意',
+            roomsDesc: 'ベーシックなお部屋から、広めのラグジュアリールームまで。すべてのお部屋にベッド、トイレ、ステップ、かくれスペースをご用意しています。',
+            room1Title: 'スタンダードルーム',
+            room1Price: '¥128/泊',
+            room1Desc: 'ほとんどの猫ちゃんにおすすめの、落ち着いて過ごせる快適なお部屋です。',
+            room1Item1: '✔ 個室タイプ',
+            room1Item2: '✔ 毎日の健康チェック',
+            room1Item3: '✔ 毎日の写真レポート',
+            room1Item4: '✔ 基本のふれあい 1 回',
+            room2Title: 'サンシャイン・ラグジュアリールーム',
+            room2Price: '¥198/泊',
+            room2Desc: '広めのお部屋で、活発な猫ちゃんや上下運動が好きな子にぴったりです。',
+            room2Item1: '✔ 大きめのキャットステップ',
+            room2Item2: '✔ 毎日のふれあい 2 回',
+            room2Item3: '✔ 動画レポート付き',
+            room2Item4: '✔ ブラッシング追加対応可',
+            room3Title: 'ファミリー2匹ルーム',
+            room3Price: '¥258/泊',
+            room3Desc: '仲の良い2匹のご家族向け。いつもの相棒と一緒に過ごせる安心プランです。',
+            room3Item1: '✔ 2匹で利用できる空間',
+            room3Item2: '✔ 食器・トイレ複数設置',
+            room3Item3: '✔ 毎日のご様子記録',
+            room3Item4: '✔ ごはんの個別対応可',
+
+            galleryLabel: '猫ちゃんギャラリー',
+            galleryTitle: 'ご宿泊中のかわいい日常',
+            galleryDesc: 'こちらはイメージ写真です。あとで実際のホテル写真やオリジナル画像に差し替えてご利用いただけます。',
+
+            servicesLabel: 'サービス内容',
+            servicesTitle: '大切な猫ちゃんを丁寧にお世話します',
+            service1Title: 'ごはんのお世話',
+            service1Desc: 'いつものフードやウェット、療法食、おやつにも対応可能です。',
+            service2Title: '健康チェック',
+            service2Desc: '食欲・排泄・元気の様子などを毎日確認し、必要時はご連絡します。',
+            service3Title: 'ふれあいタイム',
+            service3Desc: '遊びやブラッシングなど、その子の性格に合わせて対応します。',
+            service4Title: '毎日のご報告',
+            service4Desc: 'お写真や動画をお送りし、離れていても安心していただけます。',
+
+            bookingLabel: 'ご予約',
+            bookingTitle: 'ご希望内容をご入力ください',
+            bookingDesc: '初めてのご利用は、猫ちゃんのお名前・年齢・性格・ごはんの内容・ワクチン状況・注意事項などをできるだけ詳しくご記入いただけるとご案内がスムーズです。',
+            noticeTitle: 'ご利用前のご案内',
+            notice1: '• できるだけ1年以内のワクチン接種情報をご用意ください',
+            notice2: '• 急なフード変更を避けるため、普段のごはんの持参をおすすめします',
+            notice3: '• お薬がある場合は、回数・量・与え方をご記入ください',
+            notice4: '• 緊張しやすい子は、いつもの毛布やおもちゃがあると安心です',
+
+            formLabelName: '飼い主さまのお名前',
+            formLabelPhone: 'お電話番号',
+            formLabelEmail: 'メールアドレス',
+            formLabelCatName: '猫ちゃんのお名前',
+            formLabelCheckInDate: 'チェックイン日',
+            formLabelCheckOutDate: 'チェックアウト日',
+            formLabelRoom: 'ご希望のお部屋',
+            formLabelNote: '備考・ご要望',
+
+            roomOptionEmpty: '選択してください',
+            roomOption1: 'スタンダードルーム',
+            roomOption2: 'サンシャイン・ラグジュアリールーム',
+            roomOption3: 'ファミリー2匹ルーム',
+
+            faqLabel: 'よくある質問',
+            faqTitle: '初めてのご利用前によくいただくご質問',
+            faq1Q: '初めての宿泊で緊張しませんか？',
+            faq1A: '新しい環境に慣れるまで時間がかかる子もいます。無理に触れ合わず、その子のペースを大切にしています。',
+            faq2Q: 'ごはんやおもちゃは持参できますか？',
+            faq2A: 'はい、可能です。いつもの匂いやお気に入りの物があると、より安心して過ごせます。',
+            faq3Q: '他の猫ちゃんと一緒になりますか？',
+            faq3A: '基本は個室でのお預かりです。知らない猫ちゃん同士が直接接触しないよう配慮しています。',
+
+            footerBrandTitle: '猫ちゃんホテル',
+            footerBrandDesc: '猫ちゃんが安心して過ごせる、清潔でやさしいお預かり空間をご提供します。',
+            footerMenuTitle: 'サイトメニュー',
+            footerMenu1: '私たちについて',
+            footerMenu2: 'お部屋紹介',
+            footerMenu3: 'サービス内容',
+            footerMenu4: 'ご予約',
+            footerInfoTitle: '営業情報',
+            footerInfo1: '営業時間：09:00 - 20:00',
+            footerInfo2: '住所：東京都ねこねこ区しあわせ通り88番地',
+            footerInfo3: '電話：03-1234-5678',
+            footerInfo4: 'Email：meow@cathotel.jp',
+            footerSnsTitle: 'SNS',
+            footerSnsDesc: 'ご宿泊中の猫ちゃんの様子や、ホテルの日常、ちょっとした豆知識などを発信しています。',
+            footerCopyright: '© 2026 猫ちゃんホテル Cat Hotel. All Rights Reserved.',
+            footerLastLine: '大切な小さなお客さまを、心を込めてお迎えします。',
+
+            inputNamePlaceholder: 'お名前をご入力ください',
+            inputPhonePlaceholder: '例：090-1234-5678',
+            inputEmailPlaceholder: 'example@mail.com',
+            inputNotePlaceholder: '例：怖がり、投薬あり、特定のフードのみ、初対面が苦手 など',
+            submitBtn: '予約内容を送信する',
+            toggleText: '中文'
+        },
+        zh: {
+            title: '猫猫酒店 Cat Hotel',
+            brandTitle: '猫猫酒店',
+            navAbout: '关于我们',
+            navRooms: '房型介绍',
+            navGallery: '猫咪写真',
+            navServices: '服务内容',
+            navBooking: '预约入住',
+            navFaq: '常见问题',
+            headerBookingBtn: '立即预约',
+            headerBookingBtnDesktop: '立即预约',
+            headerInquiryBtn: '预约查询',
+            headerInquiryBtnDesktop: '预约查询',
+
+            heroBadge: '24小时照护 · 独立猫房 · 每日陪玩',
+            heroTitle: '给主子一个<br>像家一样安心的假期',
+            heroDesc: '猫猫酒店为出差、旅行、搬家和短期托管提供安静、安全、洁净的入住环境。每只猫咪拥有独立空间、每日健康观察、互动陪伴和照片回传，让你不在身边，也能放心托付。',
+            heroBtnRooms: '查看房型',
+            heroBtnGallery: '看看住客照片',
+            heroStat1: '回住率',
+            heroStat2: '1对1观察',
+            heroStat3: '全年接待',
+            heroStat4: '每日回传',
+
+            aboutLabel: '关于猫猫酒店',
+            aboutTitle: '不是简单寄养，<br>而是为猫咪准备一段舒适小假期',
+            aboutDesc: '我们深知猫咪对环境变化十分敏感，因此特别设计了安静分区、独立房型、柔和灯光与可攀爬设施，尽量减少陌生环境带来的压力。入住期间会记录饮食、排便、精神状态与互动情况，让每一位家长都能实时了解主子的近况。',
+            aboutCard1Title: '独立入住空间',
+            aboutCard1Desc: '减少应激，保护隐私，适合胆小猫与多猫家庭分开安置。',
+            aboutCard2Title: '每日陪伴互动',
+            aboutCard2Desc: '陪玩、梳毛、逗猫棒互动，帮助猫咪保持好心情。',
+            aboutCard3Title: '饮食按习惯喂养',
+            aboutCard3Desc: '支持自带主粮、罐头、零食和药物说明。',
+            aboutCard4Title: '照片视频回传',
+            aboutCard4Desc: '每天发送入住动态，让家长在外也能安心。',
+
+            roomsLabel: '房型介绍',
+            roomsTitle: '为不同性格的猫咪准备不同房间',
+            roomsDesc: '从基础舒适房到豪华阳光房，每间都配有猫窝、猫砂盆、跳台和隐蔽角落。',
+            room1Title: '标准舒适房',
+            room1Price: '¥128/晚',
+            room1Desc: '适合大多数猫咪，安静舒适，拥有基础活动空间和休息区域。',
+            room1Item1: '✔ 独立房间',
+            room1Item2: '✔ 每日健康观察',
+            room1Item3: '✔ 每日照片回传',
+            room1Item4: '✔ 基础陪玩 1 次',
+            room2Title: '阳光豪华房',
+            room2Price: '¥198/晚',
+            room2Desc: '更大的活动空间，适合活泼猫咪或需要更多爬高区域的主子。',
+            room2Item1: '✔ 大型跳台与躲藏区',
+            room2Item2: '✔ 每日互动 2 次',
+            room2Item3: '✔ 视频回传',
+            room2Item4: '✔ 可加购梳毛服务',
+            room3Title: '家庭双猫房',
+            room3Price: '¥258/晚',
+            room3Desc: '适合关系稳定的双猫家庭，一起入住更安心，减少分离焦虑。',
+            room3Item1: '✔ 双猫共享空间',
+            room3Item2: '✔ 多套饭碗猫砂配置',
+            room3Item3: '✔ 每日情况记录',
+            room3Item4: '✔ 可定制饮食方案',
+
+            galleryLabel: '猫咪写真',
+            galleryTitle: '住客们的可爱日常',
+            galleryDesc: '这里是示意照片，后面你可以替换成自己项目里的本地图片。',
+
+            servicesLabel: '服务内容',
+            servicesTitle: '细致照顾每一位主子',
+            service1Title: '按时喂食',
+            service1Desc: '支持主粮、湿粮、冻干、处方粮、自带零食和特殊喂食时间。',
+            service2Title: '健康观察',
+            service2Desc: '记录食欲、精神、排便和行为变化，发现异常会及时联系家长。',
+            service3Title: '互动陪玩',
+            service3Desc: '逗猫棒、抚摸、梳毛、轻度互动，帮助猫咪放松心情。',
+            service4Title: '每日回传',
+            service4Desc: '发送照片或短视频，让家长随时了解猫咪状态。',
+
+            bookingLabel: '预约入住',
+            bookingTitle: '填写信息，我们会尽快联系你',
+            bookingDesc: '首次入住建议提前预约，并告知猫咪年龄、性格、饮食习惯、疫苗情况与特殊照护需求。',
+            noticeTitle: '入住须知',
+            notice1: '• 建议提供近一年基础疫苗信息',
+            notice2: '• 请自带主粮，避免突然换粮引发不适',
+            notice3: '• 如需喂药，请提前说明方式和剂量',
+            notice4: '• 胆小猫建议自带熟悉的小毯子或玩具',
+
+            formLabelName: '家长姓名',
+            formLabelPhone: '联系电话',
+            formLabelEmail: '邮箱',
+            formLabelCatName: '猫咪名字',
+            formLabelCheckInDate: '入住日期',
+            formLabelCheckOutDate: '退房日期',
+            formLabelRoom: '想预约的房型',
+            formLabelNote: '备注需求',
+
+            roomOptionEmpty: '请选择',
+            roomOption1: '标准舒适房',
+            roomOption2: '阳光豪华房',
+            roomOption3: '家庭双猫房',
+
+            faqLabel: '常见问题',
+            faqTitle: '第一次寄养前，大家最常问这些',
+            faq1Q: '第一次寄养，猫咪会不会紧张？',
+            faq1A: '大多数猫咪在新环境都会有适应期，我们会减少打扰、提供躲藏点，并根据性格安排互动节奏。',
+            faq2Q: '可以自带猫粮和玩具吗？',
+            faq2A: '可以，强烈建议自带主粮和熟悉的小物件，这样能帮助猫咪更快放松。',
+            faq3Q: '会不会和别的猫接触？',
+            faq3A: '默认独立房间寄养，避免陌生猫直接接触，减少应激与疾病传播风险。',
+
+            footerBrandTitle: '猫猫酒店',
+            footerBrandDesc: '为猫咪提供安心、洁净、安静、有温度的寄养体验。',
+            footerMenuTitle: '快速导航',
+            footerMenu1: '关于我们',
+            footerMenu2: '房型介绍',
+            footerMenu3: '服务内容',
+            footerMenu4: '预约入住',
+            footerInfoTitle: '营业信息',
+            footerInfo1: '营业时间：09:00 - 20:00',
+            footerInfo2: '地址：东京猫猫区幸福路 88 号',
+            footerInfo3: '电话：03-1234-5678',
+            footerInfo4: 'Email：meow@cathotel.jp',
+            footerSnsTitle: '关注我们',
+            footerSnsDesc: '关注猫猫酒店的日常，查看住客照片、护理笔记和入住小贴士。',
+            footerCopyright: '© 2026 猫猫酒店 Cat Hotel. All Rights Reserved.',
+            footerLastLine: '用心照顾每一位毛茸茸的小住客。',
+
+            inputNamePlaceholder: '请输入你的姓名',
+            inputPhonePlaceholder: '例如 090-1234-5678',
+            inputEmailPlaceholder: 'example@mail.com',
+            inputNotePlaceholder: '例如：胆小、需要喂药、只吃某品牌主粮、不喜欢陌生人等',
+            submitBtn: '提交预约信息',
+            toggleText: '日本語'
+        }
+    };
+
+    const htmlIds = ['heroTitle', 'aboutTitle'];
+
+    function setText(id, value) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (htmlIds.includes(id)) {
+            el.innerHTML = value;
+        } else {
+            el.textContent = value;
+        }
+    }
+
+    function applyLanguage(lang) {
+        currentLang = lang;
+        const t = translations[lang];
+
+        document.documentElement.lang = lang;
+        document.title = t.title;
+
+        for (const key in t) {
+            if (
+                key === 'title' ||
+                key === 'toggleText' ||
+                key.endsWith('Placeholder')
+            ) continue;
+            setText(key, t[key]);
+        }
+
+        const inputName = document.getElementById('inputName');
+        const inputPhone = document.getElementById('inputPhone');
+        const inputEmail = document.getElementById('inputEmail');
+        const inputNote = document.getElementById('inputNote');
+        const langToggle = document.getElementById('langToggle');
+        const langToggleMobile = document.getElementById('langToggleMobile');
+
+        if (inputName) inputName.placeholder = t.inputNamePlaceholder;
+        if (inputPhone) inputPhone.placeholder = t.inputPhonePlaceholder;
+        if (inputEmail) inputEmail.placeholder = t.inputEmailPlaceholder;
+        if (inputNote) inputNote.placeholder = t.inputNotePlaceholder;
+        if (langToggle) langToggle.textContent = t.toggleText;
+        if (langToggleMobile) langToggleMobile.textContent = t.toggleText;
+    }
+
+    function toggleLanguage() {
+        applyLanguage(currentLang === 'ja' ? 'zh' : 'ja');
+    }
+
+    const langToggle = document.getElementById('langToggle');
+    const langToggleMobile = document.getElementById('langToggleMobile');
+
+    if (langToggle) {
+        langToggle.addEventListener('click', toggleLanguage);
+    }
+    if (langToggleMobile) {
+        langToggleMobile.addEventListener('click', toggleLanguage);
+    }
+
+    applyLanguage('ja');
+
+    async function loadAvailableRooms() {
+        const checkInInput = document.getElementById('inputCheckInDate');
+        const checkOutInput = document.getElementById('inputCheckOutDate');
+        const roomSelect = document.getElementById('selectRoom');
+        const roomHelpText = document.getElementById('roomHelpText');
+
+        if (!checkInInput || !checkOutInput || !roomSelect) return;
+
+        const checkInDate = checkInInput.value;
+        const checkOutDate = checkOutInput.value;
+
+        roomSelect.innerHTML = '';
+
+        if (!checkInDate || !checkOutDate) {
+            roomSelect.disabled = true;
+            roomSelect.innerHTML = '<option value="">先に日付を選択してください</option>';
+            if (roomHelpText) {
+                roomHelpText.textContent = currentLang === 'ja'
+                    ? 'チェックイン日とチェックアウト日を選択すると、空いているお部屋が表示されます。'
+                    : '请先选择入住和退房日期，系统会显示有空房的房型。';
+            }
+            return;
+        }
+
+        if (checkInDate >= checkOutDate) {
+            roomSelect.disabled = true;
+            roomSelect.innerHTML = '<option value="">日付を確認してください</option>';
+            if (roomHelpText) {
+                roomHelpText.textContent = currentLang === 'ja'
+                    ? 'チェックアウト日はチェックイン日より後の日付を選択してください。'
+                    : '退房日期必须晚于入住日期。';
+            }
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/available-rooms?checkInDate=${checkInDate}&checkOutDate=${checkOutDate}`);
+            const data = await response.json();
+
+            if (!Array.isArray(data) || data.length === 0) {
+                roomSelect.disabled = true;
+                roomSelect.innerHTML = `<option value="">${currentLang === 'ja' ? '空室がありません' : '没有空房'}</option>`;
+                if (roomHelpText) {
+                    roomHelpText.textContent = currentLang === 'ja'
+                        ? 'この日程では空いているお部屋がありません。'
+                        : '这个日期范围内没有可预约房型。';
+                }
+                return;
+            }
+
+            roomSelect.disabled = false;
+
+            const firstOption = document.createElement('option');
+            firstOption.value = '';
+            firstOption.textContent = currentLang === 'ja' ? '選択してください' : '请选择';
+            roomSelect.appendChild(firstOption);
+
+            data.forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.roomType;
+                option.textContent = currentLang === 'ja'
+                    ? `${room.roomType}（残り${room.remaining}室）`
+                    : `${translateRoomTypeToZh(room.roomType)}（剩余${room.remaining}间）`;
+                roomSelect.appendChild(option);
+            });
+
+            if (roomHelpText) {
+                roomHelpText.textContent = currentLang === 'ja'
+                    ? '空いているお部屋のみ表示しています。'
+                    : '当前仅显示有空房的房型。';
+            }
+        } catch (error) {
+            roomSelect.disabled = true;
+            roomSelect.innerHTML = `<option value="">${currentLang === 'ja' ? '取得失敗' : '加载失败'}</option>`;
+            if (roomHelpText) {
+                roomHelpText.textContent = currentLang === 'ja'
+                    ? '空室情報の取得に失敗しました。'
+                    : '获取空房信息失败。';
+            }
+        }
+    }
+
+    function translateRoomTypeToZh(roomType) {
+        if (roomType === 'スタンダードルーム') return '标准舒适房';
+        if (roomType === 'サンシャイン・ラグジュアリールーム') return '阳光豪华房';
+        if (roomType === 'ファミリー2匹ルーム') return '家庭双猫房';
+        return roomType;
+    }
+
+    const checkInInput = document.getElementById('inputCheckInDate');
+    const checkOutInput = document.getElementById('inputCheckOutDate');
+
+    function getTodayString() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function initDateLimit() {
+        const today = getTodayString();
+
+        if (checkInInput) {
+            checkInInput.min = today;
+        }
+
+        if (checkOutInput) {
+            checkOutInput.min = today;
+        }
+    }
+
+    function validateDateLimit() {
+        const today = getTodayString();
+
+        if (checkInInput && checkInInput.value && checkInInput.value < today) {
+            alert(currentLang === 'ja'
+                ? 'チェックイン日は今日以降の日付を選択してください。'
+                : '入住日期请选择今天或今天以后的日期。');
+            checkInInput.value = '';
+        }
+
+        if (checkOutInput && checkOutInput.value && checkOutInput.value < today) {
+            alert(currentLang === 'ja'
+                ? 'チェックアウト日は今日以降の日付を選択してください。'
+                : '退房日期请选择今天或今天以后的日期。');
+            checkOutInput.value = '';
+        }
+
+        if (checkInInput && checkOutInput && checkInInput.value) {
+            checkOutInput.min = checkInInput.value;
+        }
+    }
+
+
+    initDateLimit();
+
+    if (checkInInput) {
+        checkInInput.addEventListener('change', function () {
+            validateDateLimit();
+            loadAvailableRooms();
+        });
+    }
+
+    if (checkOutInput) {
+        checkOutInput.addEventListener('change', function () {
+            validateDateLimit();
+            loadAvailableRooms();
+        });
+    }
+
+    loadAvailableRooms();
+
+</script>
+
+</body>
+</html>

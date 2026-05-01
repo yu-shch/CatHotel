@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約一覧</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-amber-50 text-slate-800 min-h-screen">
+
+<header class="bg-white border-b border-amber-100 shadow-sm">
+    <div class="max-w-[1700px] mx-auto px-6 py-6 flex items-center justify-between">
+        <div class="shrink-0">
+            <h1 class="text-2xl font-bold text-slate-900">予約一覧</h1>
+            <p class="text-sm text-slate-500 mt-1">Cat Hotel 管理ページ</p>
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0">
+            <a href="/"
+               class="inline-flex items-center rounded-full bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 whitespace-nowrap">
+                トップへ戻る
+            </a>
+
+            <form th:action="@{/admin/logout}" method="post" class="m-0">
+                <button type="submit"
+                        class="inline-flex items-center rounded-full bg-slate-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 whitespace-nowrap">
+                    ログアウト
+                </button>
+            </form>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-[1700px] mx-auto px-6 py-10">
+    <div th:if="${adminMessage}" class="mb-6 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+        <p th:text="${adminMessage}"></p>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-sm border border-amber-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="text-xl font-bold">予約データ</h2>
+            <span class="text-sm text-slate-500" th:text="'件数：' + ${#lists.size(reservations)} + '件'">件数</span>
+        </div>
+
+        <div th:if="${#lists.isEmpty(reservations)}" class="p-10 text-center text-slate-500">
+            まだ予約データはありません。
+        </div>
+
+        <div th:if="${!#lists.isEmpty(reservations)}" class="overflow-x-auto">
+            <table class="min-w-[1400px] text-sm">
+                <thead class="bg-slate-50 text-slate-700">
+                <tr>
+                    <th class="px-4 py-3 text-left whitespace-nowrap">予約番号</th>
+                    <th class="px-4 py-3 text-left whitespace-nowrap">飼い主さま</th>
+                    <th class="px-4 py-3 text-left whitespace-nowrap">電話番号</th>
+                    <th class="px-4 py-3 text-left whitespace-nowrap">メール</th>
+                    <th class="px-4 py-3 text-left whitespace-nowrap">チェックイン</th>
+                    <th class="px-4 py-3 text-left whitespace-nowrap">チェックアウト</th>
+                    <th class="px-4 py-3 text-left whitespace-nowrap">お部屋</th>
+                    <th class="px-4 py-3 text-left whitespace-nowrap">備考</th>
+                    <th class="px-4 py-3 text-left whitespace-nowrap">猫ちゃん</th>
+                    <th class="px-4 py-3 text-left whitespace-nowrap">操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="reservation : ${reservations}" class="border-t border-slate-100 align-top">
+
+                    <td class="px-4 py-4 min-w-[180px] font-semibold text-amber-700 break-all"
+                        th:text="${reservation.reservationCode}">
+                        RES-123
+                    </td>
+
+                    <td class="px-4 py-4 min-w-[140px] whitespace-nowrap"
+                        th:text="${reservation.ownerName}">
+                        owner
+                    </td>
+
+                    <td class="px-4 py-4 min-w-[130px] break-all"
+                        th:text="${reservation.phone}">
+                        phone
+                    </td>
+
+                    <td class="px-4 py-4 min-w-[220px] break-all"
+                        th:text="${reservation.email}">
+                        email
+                    </td>
+
+                    <td class="px-4 py-4 min-w-[120px] whitespace-nowrap"
+                        th:text="${reservation.checkInDate}">
+                        2026-04-20
+                    </td>
+
+                    <td class="px-4 py-4 min-w-[120px] whitespace-nowrap"
+                        th:text="${reservation.checkOutDate}">
+                        2026-04-25
+                    </td>
+
+                    <td class="px-4 py-4 min-w-[170px] break-words"
+                        th:text="${reservation.roomType}">
+                        room
+                    </td>
+
+                    <td class="px-4 py-4 min-w-[260px] max-w-[320px] whitespace-pre-wrap break-words text-slate-700"
+                        th:text="${reservation.noteText}">
+                        note
+                    </td>
+                    <td class="px-4 py-4 min-w-[100px] whitespace-nowrap"
+                        th:text="${reservation.catName}">
+                        cat
+                    </td>
+
+                    <td class="px-4 py-4 min-w-[100px]">
+                        <form
+                                th:if="${reservation.checkInDate.isAfter(T(java.time.LocalDate).now())}"
+                                th:action="@{/admin/reservations/delete}"
+                                method="post"
+                                onsubmit="return confirm('この予約を削除しますか？');">
+                            <input type="hidden" name="id" th:value="${reservation.id}">
+                            <button type="submit"
+                                    class="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 whitespace-nowrap">
+                                削除
+                            </button>
+                        </form>
+
+                        <button th:unless="${reservation.checkInDate.isAfter(T(java.time.LocalDate).now())}"
+                                type="button"
+                                disabled
+                                class="rounded-lg bg-slate-300 px-4 py-2 text-sm font-semibold text-white cursor-not-allowed whitespace-nowrap">
+                            削除不可
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+</body>
+</html>
