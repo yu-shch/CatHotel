@@ -9,4 +9,4 @@ RUN mvn clean package -DskipTests
 
 EXPOSE 10000
 
-CMD ["java", "-Dspring.profiles.active=demo", "-jar", "target/orange-project-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java", "-Dspring.profiles.active=demo", "-jar", "target/clover-cathotel-0.0.1-SNAPSHOT.jar"]
