@@ -1,5 +1,3 @@
-// Cloverブランドのパッケージに変更
-// 更改为 Clover 品牌的包名
 package com.clover.cathotel.service;
 
 import com.clover.cathotel.model.ReservationForm;
@@ -8,6 +6,12 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 
 /**
  * メールの送信を担当するサービス
@@ -28,6 +32,14 @@ public class MailService {
     @Value("${app.admin-email:}")
     private String adminEmail;
 
+    // Render 线上部署兜底用的 Google Apps Script URL
+    @Value("${google.script.url:${GOOGLE_SCRIPT_URL:}}")
+    private String googleScriptUrl;
+
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .followRedirects(HttpClient.Redirect.ALWAYS)
+            .build();
+
     public MailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
@@ -45,18 +57,8 @@ public class MailService {
         System.out.println("MAIL FROM = " + fromEmail);
         System.out.println("CUSTOMER TO = " + form.getEmail());
 
-        // 送信元が設定されていない場合は中断
-        // 如果未设置发件人地址，则中断
-        if (!StringUtils.hasText(fromEmail)) {
-            return;
-        }
-
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(form.getEmail());
-        message.setSubject("【クローバー猫ホテル】ご予約を受け付けました");
-
-        message.setText("""
+        String subject = "【クローバー猫ホテル】ご予約を受け付けました";
+        String content = """
                 %s 様
 
                 クローバー猫ホテルへのご予約ありがとうございます。
@@ -80,9 +82,9 @@ public class MailService {
                 form.getCheckInDate(),
                 form.getCheckOutDate(),
                 form.getRoomType()
-        ));
+        );
 
-        mailSender.send(message);
+        sendWithFallback(form.getEmail(), subject, content);
     }
 
     /**
@@ -93,16 +95,12 @@ public class MailService {
             ReservationForm form,
             String reservationCode
     ) {
-        if (!StringUtils.hasText(fromEmail) || !StringUtils.hasText(adminEmail)) {
+        if (!StringUtils.hasText(adminEmail)) {
             return;
         }
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(adminEmail);
-        message.setSubject("【クローバー猫ホテル】新しい予約が入りました");
-
-        message.setText("""
+        String subject = "【クローバー猫ホテル】新しい予約が入りました";
+        String content = """
                 新しい予約が入りました。
 
                 予約番号：%s
@@ -125,8 +123,82 @@ public class MailService {
                 form.getCheckOutDate(),
                 form.getRoomType(),
                 form.getNote()
-        ));
+        );
 
-        mailSender.send(message);
+        sendWithFallback(adminEmail, subject, content);
+    }
+
+    // =========================================================================
+    // 核心发送逻辑：本地原版 SMTP 优先，失败自动转 Google 脚本兜底
+    // =========================================================================
+    private void sendWithFallback(String toEmail, String subject, String body) {
+        boolean sent = false;
+
+        // 1. 云端优先：配置了 Google 脚本时直接走 HTTP 发信，跳过被封锁的 587 端口
+        if (StringUtils.hasText(googleScriptUrl)) {
+            sendViaGoogleScript(toEmail, subject, body);
+            return;
+        }
+
+        // 2. 本地开发（未配置 Google 脚本时）：走原生 Gmail SMTP
+        if (mailSender != null && StringUtils.hasText(fromEmail)) {
+            try {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(fromEmail);
+                message.setTo(toEmail);
+                message.setSubject(subject);
+                message.setText(body);
+
+                mailSender.send(message);
+                sent = true;
+                System.out.println("=== 原生 SMTP 送信成功 ===");
+            } catch (Exception e) {
+                System.err.println("=== 原生 SMTP 失败（Render 拦截或连接异常）: " + e.getMessage() + " ===");
+            }
+        }
+
+        // 2. 线上兜底：在 Render 线上或未配置本地 SMTP 时，走 Google Apps Script
+        if (!sent && StringUtils.hasText(googleScriptUrl)) {
+            sendViaGoogleScript(toEmail, subject, body);
+        }
+    }
+
+    // =========================================================================
+    // Google Apps Script HTTP 发信接口
+    // =========================================================================
+    private void sendViaGoogleScript(String toEmail, String subject, String textBody) {
+        try {
+            String jsonPayload = String.format(
+                    "{\"to\":\"%s\",\"subject\":\"%s\",\"body\":\"%s\"}",
+                    toEmail,
+                    escapeJson(subject),
+                    escapeJson(textBody)
+            );
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(googleScriptUrl))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload, StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200 || response.statusCode() == 302) {
+                System.out.println("=== Google 脚本中继送信成功 ===");
+            } else {
+                System.err.println("=== Google 脚本返回异常状态码: " + response.statusCode());
+            }
+        } catch (Exception e) {
+            System.err.println("=== Google 脚本发信异常 ===");
+            e.printStackTrace();
+        }
+    }
+
+    private String escapeJson(String input) {
+        if (input == null) return "";
+        return input.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "");
     }
 }
