@@ -46,7 +46,107 @@
             まだ予約データはありません。
         </div>
 
-        <div th:if="${!#lists.isEmpty(reservations)}" class="overflow-x-auto">
+        <!-- ======================================================== -->
+        <!-- 复合检索栏：分类 + 关键词输入(固定宽) + 匹配模式 + 4种日期 -->
+        <!-- ======================================================== -->
+        <div class="my-5 p-4 bg-white rounded-2xl border border-stone-200/80 shadow-xs flex flex-col gap-3.5">
+
+            <!-- 第一排：文本检索与操作按钮（紧凑排列，不分散） -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- 1. 检索字段分类 -->
+                <select id="searchField"
+                        class="h-10 pl-3 pr-8 rounded-xl border border-stone-300 bg-stone-50/50 text-stone-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer">
+                    <option value="all">全て</option>
+                    <option value="owner">飼い主名</option>
+                    <option value="cat">猫の名前</option>
+                    <option value="phone">電話番号</option>
+                    <option value="room">お部屋</option>
+                    <option value="code">予約番号</option>
+                </select>
+
+                <!-- 2. 关键词输入框（固定宽度 288px） -->
+                <div class="w-72">
+                    <input type="text" id="searchKeyword"
+                           placeholder="キーワードを入力"
+                           class="w-full h-10 px-3.5 rounded-xl border border-stone-300 bg-stone-50/50 text-stone-800 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition placeholder:text-stone-400">
+                </div>
+
+                <!-- 3. 匹配模式 -->
+                <select id="matchMode"
+                        class="h-10 pl-3 pr-8 rounded-xl border border-stone-300 bg-stone-50/50 text-stone-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer">
+                    <option value="partial">一部含む</option>
+                    <option value="exact">完全一致</option>
+                </select>
+
+                <!-- 4. 检索按钮（紧跟在下拉框右侧） -->
+                <button type="button" onclick="executeSearch()"
+                        class="h-10 px-5 ml-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                    検索
+                </button>
+
+                <!-- 5. 全量重置按钮 -->
+                <button type="button" onclick="resetSearch()"
+                        class="h-10 px-4 rounded-xl border border-stone-300 hover:bg-stone-100 text-stone-600 text-xs font-medium transition cursor-pointer">
+                    検索クリア
+                </button>
+            </div>
+
+            <!-- 第二排：日程条件 + 模式选择（带非活性状态） + 提示词 -->
+            <div class="flex flex-col gap-1.5 pt-3 border-t border-stone-100 text-xs text-stone-600">
+                <div class="flex flex-wrap items-center gap-2">
+        <span class="font-medium text-stone-500 flex items-center gap-1">
+            <svg class="w-3.5 h-3.5 text-stone-400 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 9v7.5" />
+            </svg>
+            日程条件:
+        </span>
+
+                    <!-- 日期 1 类型 -->
+                    <select id="dateType1" onchange="checkDateModeAvailability()"
+                            class="h-8 pl-2 pr-6 rounded-lg border border-stone-300 bg-stone-50/50 text-stone-700 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer">
+                        <option value="checkin" selected>チェックイン日</option>
+                        <option value="checkout">チェックアウト日</option>
+                    </select>
+
+                    <!-- 日期 1 -->
+                    <input type="date" id="startDate"
+                           class="h-8 px-2 rounded-lg border border-stone-300 bg-stone-50/50 text-stone-700 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer">
+
+                    <span class="text-stone-400 font-bold">〜</span>
+
+                    <!-- 日期 2 类型 -->
+                    <select id="dateType2" onchange="checkDateModeAvailability()"
+                            class="h-8 pl-2 pr-6 rounded-lg border border-stone-300 bg-stone-50/50 text-stone-700 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer">
+                        <option value="checkin">チェックイン日</option>
+                        <option value="checkout" selected>チェックアウト日</option>
+                    </select>
+
+                    <!-- 日期 2 -->
+                    <input type="date" id="endDate"
+                           class="h-8 px-2 rounded-lg border border-stone-300 bg-stone-50/50 text-stone-700 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer">
+
+                    <!-- 模式切换（增加 disabled 样式支持） -->
+                    <select id="dateMatchMode" onchange="switchDateHint()"
+                            class="h-8 pl-2 pr-6 rounded-lg border border-stone-300 bg-stone-50/50 text-stone-700 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer ml-1 disabled:bg-stone-100 disabled:text-stone-400 disabled:border-stone-200 disabled:cursor-not-allowed transition">
+                        <option value="exact" selected>完全一致</option>
+                        <option value="within">指定期間内</option>
+                    </select>
+
+                    <!-- 局部清空 -->
+                    <button type="button" onclick="clearDates()"
+                            class="text-stone-400 hover:text-stone-600 underline text-[11px] ml-1.5 cursor-pointer">
+                        日付クリア
+                    </button>
+                </div>
+
+                <!-- 静态说明文字 -->
+                <div id="dateHintText" class="text-[11px] text-stone-400 pl-1 select-none">
+                    ※ 指定した日程と完全に一致する履歴のみを表示します。
+                </div>
+            </div>
             <table class="min-w-[1400px] text-sm">
                 <thead class="bg-slate-50 text-slate-700">
                 <tr>
@@ -63,53 +163,62 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="reservation : ${reservations}" class="border-t border-slate-100 align-top">
+                <!-- 1. 修改循环行：打上各项数据标签 -->
+                <tr th:each="reservation : ${reservations}"
+                    class="reservation-row"
+                    th:data-code="${reservation.reservationCode}"
+                    th:data-owner="${reservation.ownerName}"
+                    th:data-cat="${reservation.catName}"
+                    th:data-phone="${reservation.phone}"
+                    th:data-room="${reservation.roomType}"
+                    th:data-checkin="${reservation.checkInDate}"
+                    th:data-checkout="${reservation.checkOutDate}">
 
-                    <td class="px-4 py-4 min-w-[180px] font-semibold text-amber-700 break-all"
+                    <td class="px-4 py-4 min-w-[135px] font-semibold text-amber-700 break-all"
                         th:text="${reservation.reservationCode}">
                         RES-123
                     </td>
 
-                    <td class="px-4 py-4 min-w-[140px] whitespace-nowrap"
+                    <td class="px-4 py-4 min-w-[75px] whitespace-nowrap"
                         th:text="${reservation.ownerName}">
                         owner
                     </td>
 
-                    <td class="px-4 py-4 min-w-[130px] break-all"
+                    <td class="px-4 py-4 min-w-[105px] break-all"
                         th:text="${reservation.phone}">
                         phone
                     </td>
 
-                    <td class="px-4 py-4 min-w-[220px] break-all"
+                    <td class="px-4 py-4 min-w-[140px] break-all"
                         th:text="${reservation.email}">
                         email
                     </td>
 
-                    <td class="px-4 py-4 min-w-[120px] whitespace-nowrap"
+                    <td class="px-4 py-4 min-w-[85px] whitespace-nowrap"
                         th:text="${reservation.checkInDate}">
                         2026-04-20
                     </td>
 
-                    <td class="px-4 py-4 min-w-[120px] whitespace-nowrap"
+                    <td class="px-4 py-4 min-w-[85px] whitespace-nowrap"
                         th:text="${reservation.checkOutDate}">
                         2026-04-25
                     </td>
 
-                    <td class="px-4 py-4 min-w-[170px] break-words"
+                    <td class="px-4 py-4 min-w-[95px] break-words"
                         th:text="${reservation.roomType}">
                         room
                     </td>
 
-                    <td class="px-4 py-4 min-w-[260px] max-w-[320px] whitespace-pre-wrap break-words text-slate-700"
+                    <td class="px-4 py-4 min-w-[160px] max-w-[320px] whitespace-pre-wrap break-words text-slate-700"
                         th:text="${reservation.noteText}">
                         note
                     </td>
-                    <td class="px-4 py-4 min-w-[100px] whitespace-nowrap"
+                    <td class="px-4 py-4 min-w-[75px] whitespace-nowrap"
                         th:text="${reservation.catName}">
                         cat
                     </td>
 
-                    <td class="px-4 py-4 min-w-[100px]">
+                    <td class="px-4 py-4 min-w-[60px]">
                         <form
                                 th:if="${reservation.checkInDate.isAfter(T(java.time.LocalDate).now())}"
                                 th:action="@{/admin/reservations/delete}"
@@ -130,11 +239,545 @@
                         </button>
                     </td>
                 </tr>
+                <!-- 2. 在 </tbody> 的最底端追加此空数据提示行（默认隐藏） -->
+                <tr id="noResultsRow" class="hidden">
+                    <td colspan="8" class="text-center py-12 text-stone-400 text-xs">
+                        一致する予約データが見つかりませんでした。
+                    </td>
+                </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </main>
+<!-- 超时重新登录模态框 -->
+<!-- 默认带有 class="hidden"，处于隐藏状态；超时触发时通过 JS 移除 hidden 显示 -->
+<div id="timeoutModal"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/80 backdrop-blur-xl p-4 hidden">
 
+    <!-- 模态框卡片容器：采用 rounded-3xl 大圆角与白色阴影，与后台卡片风格统一 -->
+    <div class="w-full max-w-sm rounded-3xl bg-white p-8 shadow-2xl border border-amber-50/50 text-left transform transition-all">
+
+        <!-- 卡片头部：图标与说明文字 -->
+        <div class="text-center mb-6">
+            <!-- 琥珀色圆角图标背景 -->
+            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 mb-3 shadow-inner">
+                <!-- SVG 锁头图标 -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+            </div>
+            <!-- 提示标题 -->
+            <h3 class="text-xl font-bold text-slate-800">再ログインのお願い</h3>
+            <!-- 提示副标题/说明 -->
+            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                一定時間操作がありませんでした。<br>作業を再開するにはログインしてください。
+            </p>
+        </div>
+
+        <!-- 错误提示容器：平时 hidden 隐藏，密码输错时由 JS 写入文字并移除 hidden 显示 -->
+        <div id="reloginError"
+             class="hidden mb-4 rounded-2xl bg-red-50 p-3 text-xs text-red-600 border border-red-100 text-center">
+        </div>
+
+        <!-- 重新登录表单：novalidate 用于禁用浏览器自带的黄色气泡，由项目自身样式负责提示 -->
+        <form id="reloginForm" novalidate class="space-y-4">
+            <!-- 1. 用户名输入框 -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">ユーザー名</label>
+                <!-- 默认预填 admin，减少前台人员重复输入的步骤 -->
+                <input type="text"
+                       id="reloginUsername"
+                       value="admin"
+                       required
+                       placeholder="ユーザー名を入力"
+                       class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 transition">
+            </div>
+
+            <!-- 2. 密码输入框 -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">パスワード</label>
+                <input type="password"
+                       id="reloginPassword"
+                       required
+                       placeholder="••••••••"
+                       class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 transition">
+            </div>
+
+            <!-- 3. 操作按钮组：取消登出 vs 重新认证 -->
+            <div class="flex items-center gap-3 pt-3">
+                <!-- 取消按钮：点击直接访问登出接口，清理 session 并退回到 /admin/login 页面 -->
+                <a th:href="@{/admin/logout}"
+                   class="w-1/2 py-3 rounded-full border border-slate-200 text-center text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">
+                    キャンセル
+                </a>
+                <!-- 登录按钮：点击触发 JS 拦截，发起异步 Ajax 请求 -->
+                <button type="submit"
+                        id="reloginBtn"
+                        class="w-1/2 py-3 rounded-full bg-amber-500 text-sm font-semibold text-white hover:bg-amber-600 shadow-md transition">
+                    ログイン
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // 超时阈值（毫秒）：30 * 60 * 1000 即 30 分钟。测试排查时可临时改为 10 * 1000（10 秒）
+     const TIMEOUT_LIMIT = 10　* 1000;
+     // 用于在 localStorage 中存储锁定状态标记的 Key 名
+     const STORAGE_KEY_LOCKED = 'cathotel_is_locked';
+     // 用于在 localStorage 中存储最后一次活跃时间戳的 Key 名
+     const STORAGE_KEY_LAST_ACTIVE = 'cathotel_last_active';
+
+     // 定时器引用句柄，用于清除和重启计时器
+     let idleTimer = null;
+
+     // -------------------------------------------------------------
+     // 2. 弹窗显示与关闭控制函数
+     // -------------------------------------------------------------
+     /**
+      * 触发锁屏弹窗
+      */
+     function openModal() {
+         // 获取弹窗的 DOM 节点
+         const modal = document.getElementById('timeoutModal');
+         // 节点存在时执行展示逻辑
+         if (modal) {
+             // 将锁定标记持久化写入 localStorage，刷新页面后标记依然存在
+             localStorage.setItem(STORAGE_KEY_LOCKED, 'true');
+             // 移除 hidden 类，显示半透明遮罩与卡片
+             modal.classList.remove('hidden');
+             // 清空上一次可能输入过的旧密码
+             document.getElementById('reloginPassword').value = '';
+             // 隐藏可能残留的红色错误提示
+             document.getElementById('reloginError').classList.add('hidden');
+             // 将光标自动聚焦到密码输入框，方便员工直接输入
+             document.getElementById('reloginPassword').focus();
+         }
+     }
+
+     /**
+      * 关闭弹窗并解除锁屏
+      */
+     function closeModal() {
+         // 获取弹窗的 DOM 节点
+         const modal = document.getElementById('timeoutModal');
+         // 节点存在时执行关闭逻辑
+         if (modal) {
+             // 从 localStorage 中彻底移除锁定标记
+             localStorage.removeItem(STORAGE_KEY_LOCKED);
+             // 刷新最后一次活跃时间戳为当前时间
+             localStorage.setItem(STORAGE_KEY_LAST_ACTIVE, Date.now().toString());
+             // 加上 hidden 类，重新隐藏弹窗
+             modal.classList.add('hidden');
+             // 重新启动新一轮的倒计时
+             resetTimer();
+         }
+     }
+
+     // -------------------------------------------------------------
+     // 3. 闲置计时器管理与重置
+     // -------------------------------------------------------------
+     /**
+      * 重置闲置倒计时
+      */
+     function resetTimer() {
+         // 如果当前已经处于锁定状态，则不重置计时器，直接保持锁定
+         if (localStorage.getItem(STORAGE_KEY_LOCKED) === 'true') {
+             return;
+         }
+
+         // 清除上一次挂起的定时器
+         if (idleTimer) {
+             clearTimeout(idleTimer);
+         }
+
+         // 更新最后活跃时间为当前时间戳
+         localStorage.setItem(STORAGE_KEY_LAST_ACTIVE, Date.now().toString());
+
+         // 重新启动定时器，闲置达到 TIMEOUT_LIMIT 后执行 openModal
+         idleTimer = setTimeout(openModal, TIMEOUT_LIMIT);
+     }
+
+     /**
+      * 用户活跃触发函数（防抖检查：未锁定时才更新活跃时间）
+      */
+     function onUserActivity() {
+         // 处于锁屏状态时不更新活跃时间，防止鼠标晃动误解锁
+         if (localStorage.getItem(STORAGE_KEY_LOCKED) !== 'true') {
+             resetTimer();
+         }
+     }
+
+     // -------------------------------------------------------------
+     // 4. 页面初始化校验（核心：解决刷新页面弹窗消失的问题）
+     // -------------------------------------------------------------
+     /**
+      * 页面一加载完毕立即执行检查
+      */
+     function initScreenLockCheck() {
+         // 检查 1：如果缓存中已记录了锁定状态，立即重新弹出锁定框
+         const isLocked = localStorage.getItem(STORAGE_KEY_LOCKED) === 'true';
+         if (isLocked) {
+             openModal();
+             return;
+         }
+
+         // 检查 2：计算用户距离上一次活跃过去了多少毫秒（防止刷新页面重置等待时间）
+         const lastActiveStr = localStorage.getItem(STORAGE_KEY_LAST_ACTIVE);
+         // 获取当前时间戳
+         const now = Date.now();
+
+         // 如果存在历史活跃记录
+         if (lastActiveStr) {
+             // 转换保存的时间戳为数字
+             const lastActive = parseInt(lastActiveStr, 10);
+             // 计算离开页面的时间间隔
+             const elapsed = now - lastActive;
+
+             // 如果离开时间已经超过了限制，直接锁屏
+             if (elapsed >= TIMEOUT_LIMIT) {
+                 openModal();
+                 return;
+             } else {
+                 // 如果还没超期，剩余等待时间 = 总时长 - 已经过去的时长
+                 const remaining = TIMEOUT_LIMIT - elapsed;
+                 // 清除之前的定时器
+                 if (idleTimer) clearTimeout(idleTimer);
+                 // 仅等待剩余的毫秒数后锁屏
+                 idleTimer = setTimeout(openModal, remaining);
+             }
+         } else {
+             // 没有历史记录时，直接启动完整的计时周期
+             resetTimer();
+         }
+     }
+
+     // -------------------------------------------------------------
+     // 5. 监听用户操作行为
+     // -------------------------------------------------------------
+     // 监听：鼠标移动、鼠标点击、键盘输入、页面滚动、移动端触摸
+     ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'].forEach(function(evt) {
+         // 注册事件监听器，passive: true 用于提升页面滚动流畅度
+         window.addEventListener(evt, onUserActivity, { passive: true });
+     });
+
+     // 页面加载完成后立即调用初始化检查
+     initScreenLockCheck();
+
+     // -------------------------------------------------------------
+     // 6. 异步登录提交处理（Fetch API）
+     // -------------------------------------------------------------
+     // 获取表单 DOM 并绑定 submit 提交监听事件
+     document.getElementById('reloginForm').addEventListener('submit', async function(e) {
+         // 阻止原生 HTML 表单跳转刷新页面的默认行为
+         e.preventDefault();
+
+         // 获取用户填写的用户名、密码输入框及提示容器 DOM
+         const usernameInput = document.getElementById('reloginUsername');
+         const passwordInput = document.getElementById('reloginPassword');
+         const errorDiv = document.getElementById('reloginError');
+         const submitBtn = document.getElementById('reloginBtn');
+
+         // 去除首尾多余空格
+         const username = usernameInput.value.trim();
+         const password = passwordInput.value.trim();
+
+         // 基础非空校验：若未输入密码则就地提示并中止网络请求
+         if (!password) {
+             errorDiv.textContent = 'パスワードを入力してください。';
+             errorDiv.classList.remove('hidden');
+             passwordInput.focus();
+             return;
+         }
+
+         // 发起请求前先隐藏旧错误信息
+         errorDiv.classList.add('hidden');
+         // 禁用提交按钮，避免网络延迟时重复点击
+         submitBtn.disabled = true;
+         // 修改按钮文字反馈操作状态
+         submitBtn.textContent = '確認中...';
+
+         try {
+             // 构建标准的表单格式参数
+             const params = new URLSearchParams();
+             params.append('username', username);
+             params.append('password', password);
+
+             // 发起异步 POST 请求到后端的重新认证接口
+             const response = await fetch('/admin/api/relogin', {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/x-www-form-urlencoded'
+                 },
+                 body: params
+             });
+
+             // 如果后端返回 HTTP 200，说明密码核对通过
+             if (response.ok) {
+                 // 关闭弹窗并自动清除 localStorage 中的锁定标记
+                 closeModal();
+             } else {
+                 // 如果后端返回 401，解析返回的 JSON 错误信息
+                 const result = await response.json();
+                 // 将错误文本写入错误容器
+                 errorDiv.textContent = result.message || '認証に失敗しました。';
+                 // 移除 hidden 显示错误提示
+                 errorDiv.classList.remove('hidden');
+                 // 选中输入的错误密码，方便用户直接键盘重输
+                 passwordInput.select();
+             }
+         } catch (error) {
+             // 网络异常或断网时的兜底提示
+             errorDiv.textContent = '通信エラーが発生しました。もう一度お試しください。';
+             errorDiv.classList.remove('hidden');
+         } finally {
+             // 无论成功还是失败，均恢复登录按钮可点击
+             submitBtn.disabled = false;
+             submitBtn.textContent = 'ログイン';
+         }
+     });
+
+     // -------------------------------------------------------------
+     // 7. 处理取消（直接登出时清空锁屏缓存）
+     // -------------------------------------------------------------
+     // 获取弹窗中的取消/登出按钮（假设为类中的 <a> 标签）
+     const cancelLink = document.querySelector('#timeoutModal a[href*="logout"]');
+     // 如果存在取消按钮，监听其点击事件
+     if (cancelLink) {
+         cancelLink.addEventListener('click', function() {
+             // 主动退出时，顺手清空本地锁屏缓存
+             localStorage.removeItem(STORAGE_KEY_LOCKED);
+             localStorage.removeItem(STORAGE_KEY_LAST_ACTIVE);
+         });
+
+// ========================================================
+    // 看板复合检索核心脚本
+    // ========================================================
+
+    /**
+     * 文本全/半角空格剔除与小写转换
+     */
+    function normalizeText(val) {
+        return (val || '').toString().replace(/\u3000/g, ' ').replace(/\s+/g, '').toLowerCase();
+    }
+
+    /**
+     * 电话号码纯数字提取
+     */
+    function normalizePhone(val) {
+        return (val || '').toString().replace(/[-\s\u3000]/g, '');
+    }
+
+    /**
+     * 主检索逻辑
+     */
+    // ========================================================
+    // 看板复合检索逻辑（置灰联动 + 4种模式精准匹配）
+    // ========================================================
+
+    /**
+     * 1. 检查模式下拉菜单可用性（置灰/活性）与提示语更新
+     */
+    function checkDateModeAvailability() {
+        const type1 = document.getElementById('dateType1').value;
+        const type2 = document.getElementById('dateType2').value;
+        const modeSelect = document.getElementById('dateMatchMode');
+        const hintEl = document.getElementById('dateHintText');
+
+        // 仅当 日期1是入住 且 日期2是退房 时，才激活下拉菜单
+        const isStayPeriod = (type1 === 'checkin' && type2 === 'checkout');
+
+        if (isStayPeriod) {
+            modeSelect.disabled = false;
+            switchDateHint();
+        } else {
+            modeSelect.disabled = true;
+            modeSelect.value = 'exact'; // 禁用时锁定为完全一致
+
+            if (type1 === 'checkin' && type2 === 'checkin') {
+                hintEl.textContent = '※ チェックイン日による絞り込み（チェックイン〜チェックアウト指定時のみ期間切替可）。';
+            } else if (type1 === 'checkout' && type2 === 'checkout') {
+                hintEl.textContent = '※ チェックアウト日による絞り込み（チェックイン〜チェックアウト指定時のみ期間切替可）。';
+            } else {
+                hintEl.textContent = '※ チェックイン日〜チェックアウト日を指定した場合のみ、一致／期間内の切り替えが可能です。';
+            }
+        }
+    }
+
+    /**
+     * 2. 活性状态下的模式切换说明
+     */
+    function switchDateHint() {
+        const mode = document.getElementById('dateMatchMode').value;
+        const hintEl = document.getElementById('dateHintText');
+        if (!hintEl) return;
+
+        if (mode === 'within') {
+            hintEl.textContent = '※ 指定した期間内に含まれるすべての宿泊履歴を表示します。';
+        } else {
+            hintEl.textContent = '※ 指定した日程と完全に一致する履歴のみを表示します。';
+        }
+    }
+
+    /**
+     * 3. 核心检索执行
+     */
+    function executeSearch() {
+        const field = document.getElementById('searchField').value;
+        const mode = document.getElementById('matchMode').value;
+        const keywordRaw = document.getElementById('searchKeyword').value;
+        const keyword = normalizeText(keywordRaw);
+        const keywordPhone = normalizePhone(keywordRaw);
+
+        const type1 = document.getElementById('dateType1').value;
+        let d1 = document.getElementById('startDate').value;
+        const type2 = document.getElementById('dateType2').value;
+        let d2 = document.getElementById('endDate').value;
+        const isStayPeriod = (type1 === 'checkin' && type2 === 'checkout');
+        const dateMode = document.getElementById('dateMatchMode').value;
+
+        // 同类型日期且前后顺序颠倒时自动纠正
+        if (type1 === type2 && d1 && d2 && d1 > d2) {
+            const temp = d1; d1 = d2; d2 = temp;
+            document.getElementById('startDate').value = d1;
+            document.getElementById('endDate').value = d2;
+        }
+
+        const rows = document.querySelectorAll('.reservation-row');
+        let matchedCount = 0;
+
+        rows.forEach(row => {
+            const code = normalizeText(row.getAttribute('data-code'));
+            const owner = normalizeText(row.getAttribute('data-owner'));
+            const cat = normalizeText(row.getAttribute('data-cat'));
+            const phone = normalizeText(row.getAttribute('data-phone'));
+            const phoneClean = normalizePhone(row.getAttribute('data-phone'));
+            const room = normalizeText(row.getAttribute('data-room'));
+
+            const checkIn = row.getAttribute('data-checkin');
+            const checkOut = row.getAttribute('data-checkout');
+
+            // 文本匹配
+            let textMatched = false;
+            if (!keyword) {
+                textMatched = true;
+            } else if (mode === 'exact') {
+                switch (field) {
+                    case 'owner': textMatched = (owner === keyword); break;
+                    case 'cat':   textMatched = (cat === keyword); break;
+                    case 'phone': textMatched = (phone === keyword || phoneClean === keywordPhone); break;
+                    case 'room':  textMatched = (room === keyword); break;
+                    case 'code':  textMatched = (code === keyword); break;
+                    case 'all': default:
+                        textMatched = (code === keyword || owner === keyword || cat === keyword ||
+                                       phone === keyword || phoneClean === keywordPhone || room === keyword);
+                        break;
+                }
+            } else {
+                switch (field) {
+                    case 'owner': textMatched = owner.includes(keyword); break;
+                    case 'cat':   textMatched = cat.includes(keyword); break;
+                    case 'phone': textMatched = (phone.includes(keyword) || phoneClean.includes(keywordPhone)); break;
+                    case 'room':  textMatched = room.includes(keyword); break;
+                    case 'code':  textMatched = code.includes(keyword); break;
+                    case 'all': default:
+                        textMatched = (code.includes(keyword) || owner.includes(keyword) || cat.includes(keyword) ||
+                                       phone.includes(keyword) || phoneClean.includes(keywordPhone) || room.includes(keyword));
+                        break;
+                }
+            }
+
+            // 日期匹配（仅入住〜退房支持切换完全一致/指定期间内，其余一律精确范围）
+            let dateMatched = false;
+
+            if (!d1 && !d2) {
+                dateMatched = true;
+            } else if (isStayPeriod) {
+                if (dateMode === 'within') {
+                    const startLimit = d1 || '0000-00-00';
+                    const endLimit = d2 || '9999-99-99';
+                    dateMatched = (checkIn >= startLimit && checkOut <= endLimit);
+                } else {
+                    if (d1 && d2) {
+                        dateMatched = (checkIn === d1 && checkOut === d2);
+                    } else if (d1) {
+                        dateMatched = (checkIn === d1);
+                    } else if (d2) {
+                        dateMatched = (checkOut === d2);
+                    }
+                }
+            } else if (type1 === 'checkin' && type2 === 'checkin') {
+                if (d1 && d2) {
+                    dateMatched = (checkIn >= d1 && checkIn <= d2);
+                } else {
+                    dateMatched = (checkIn === (d1 || d2));
+                }
+            } else if (type1 === 'checkout' && type2 === 'checkout') {
+                if (d1 && d2) {
+                    dateMatched = (checkOut >= d1 && checkOut <= d2);
+                } else {
+                    dateMatched = (checkOut === (d1 || d2));
+                }
+            } else {
+                if (d1 && d2) {
+                    dateMatched = (checkOut === d1 && checkIn === d2);
+                } else {
+                    dateMatched = (checkOut === d1 || checkIn === d2);
+                }
+            }
+
+            const isVisible = textMatched && dateMatched;
+            row.classList.toggle('hidden', !isVisible);
+            if (isVisible) matchedCount++;
+        });
+
+        const noResultsRow = document.getElementById('noResultsRow');
+        if (noResultsRow) {
+            noResultsRow.classList.toggle('hidden', matchedCount > 0);
+        }
+    }
+
+    /**
+     * 4. 局部清除日期
+     */
+    function clearDates() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        executeSearch();
+    }
+
+    /**
+     * 5. 全量重置搜索
+     */
+    function resetSearch() {
+        document.getElementById('searchField').value = 'all';
+        document.getElementById('matchMode').value = 'partial';
+        document.getElementById('searchKeyword').value = '';
+
+        document.getElementById('dateType1').value = 'checkin';
+        document.getElementById('startDate').value = '';
+        document.getElementById('dateType2').value = 'checkout';
+        document.getElementById('endDate').value = '';
+        document.getElementById('dateMatchMode').value = 'exact';
+
+        checkDateModeAvailability();
+        executeSearch();
+    }
+
+
+    /// 监听输入框回车键触发检索
+    document.getElementById('searchKeyword').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') executeSearch();
+    });
+
+    // 页面加载完成后初始化下拉状态
+    document.addEventListener('DOMContentLoaded', function() {
+        checkDateModeAvailability();
+    });
+     }
+</script>
 </body>
 </html>
