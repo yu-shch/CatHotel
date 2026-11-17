@@ -5,14 +5,19 @@ package com.clover.cathotel.controller;
 import com.clover.cathotel.model.AdminLoginForm;
 // 导入预订数据实体模型类
 import com.clover.cathotel.model.Reservation;
+// 导入邮件发送业务服务类
+import com.clover.cathotel.service.MailService;
+// 导入 HTTP Cookie 操作类
+import jakarta.servlet.http.Cookie;
+// 导入 HTTP Servlet 响应对象，用于向客户端写回 Cookie
+import jakarta.servlet.http.HttpServletResponse;
 // 导入 HTTP 会话管理接口，用于维护服务端登录凭证
 import jakarta.servlet.http.HttpSession;
 // 导入 Jakarta Validation 校验触发注解
 import jakarta.validation.Valid;
 // 导入 Spring 响应体封装实体，用于 Restful API 统一响应
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.http.ResponseEntity;
 // 导入 Spring JDBC 数据库操作核心模板
 import org.springframework.jdbc.core.JdbcTemplate;
 // 声明此类为 Spring MVC 控制器组件
@@ -27,35 +32,34 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 // 导入请求 URL 查询参数与表单字段绑定注解
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 // 导入跨重定向闪存属性传递接口
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 // 导入 Java 8 本地日期处理类 LocalDate
 import java.time.LocalDate;
-// 导入 HTTP Cookie 操作类
-import jakarta.servlet.http.Cookie;
-// 导入 HTTP Servlet 响应对象，用于向客户端写回 Cookie
-import jakarta.servlet.http.HttpServletResponse;
-
 // 导入 List 集合接口
 import java.util.List;
 // 导入 Map 映射集合接口
 import java.util.Map;
 
-
 /**
  * 【后台管理员认证与预约管理控制器】
  * 负责管理员后台登录鉴权、Cookie 记住用户名、安全注销、
- * 后台预约总看板数据列表展示、超时弹窗异步重认证，以及管理员后台删除预约。
+ * 后台预约总看板数据列表展示、超时弹窗异步重认证，以及管理员后台编辑与删除预约。
  */
 @Controller
 public class AdminAuthController {
 
     // 声明数据库操作模板对象（final 修饰，保证不可篡改）
     private final JdbcTemplate jdbcTemplate;
+    // 声明邮件发送服务对象
+    private final MailService mailService;
 
-    // 控制器构造函数：通过 Spring 构造器依赖注入（DI）初始化 JdbcTemplate
-    public AdminAuthController(JdbcTemplate jdbcTemplate) {
+    // 控制器构造函数：通过 Spring 构造器依赖注入（DI）初始化 JdbcTemplate 和 MailService
+    public AdminAuthController(JdbcTemplate jdbcTemplate, MailService mailService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.mailService = mailService;
     }
 
     // 映射 GET /admin/login（管理员登录页面入口）
@@ -289,15 +293,168 @@ public class AdminAuthController {
         // 调用 JdbcTemplate 执行删除
         jdbcTemplate.update(sql, id);
 
-        // 注入删除成功的提示消息
+        // 添加删除成功提示消息
         redirectAttributes.addFlashAttribute("adminMessage", "予約を削除しました。");
-        // 重定向刷新后台看板
+        // 重定向刷新后台列表
         return "redirect:/admin/reservations";
     }
 
-    /**
-     * 映射 POST /admin/api/relogin（超时弹窗异步重新验证）
-     */
+    // 映射 GET /admin/reservations/edit/{id}（管理员进入预约编辑页面）
+    @GetMapping("/admin/reservations/edit/{id}")
+    public String editReservationPage(
+            @org.springframework.web.bind.annotation.PathVariable Long id,
+            HttpSession session,
+            Model model,
+            RedirectAttributes redirectAttributes
+    ) {
+        // 校验管理员登录状态，未登录则跳转回登录页
+        Boolean adminLoggedIn = (Boolean) session.getAttribute("adminLoggedIn");
+        if (adminLoggedIn == null || !adminLoggedIn) {
+            return "redirect:/admin/login";
+        }
+
+        // 根据预约 ID 查询该条预约的完整信息
+        String sql = """
+                SELECT id, reservation_code, owner_name, phone, email, cat_name, check_in_date, check_out_date, room_type, note_text
+                FROM reservations
+                WHERE id = ?
+                """;
+
+        List<Reservation> list = jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Reservation r = new Reservation();
+            r.setId(rs.getLong("id"));
+            r.setReservationCode(rs.getString("reservation_code"));
+            r.setOwnerName(rs.getString("owner_name"));
+            r.setPhone(rs.getString("phone"));
+            r.setEmail(rs.getString("email"));
+            r.setCatName(rs.getString("cat_name"));
+            r.setCheckInDate(rs.getDate("check_in_date").toLocalDate());
+            r.setCheckOutDate(rs.getDate("check_out_date").toLocalDate());
+            r.setRoomType(rs.getString("room_type"));
+            r.setNoteText(rs.getString("note_text"));
+            return r;
+        }, id);
+
+        // 若未查到对应记录（如已被删除），携带提示信息返回预约一览表
+        if (list.isEmpty()) {
+            redirectAttributes.addFlashAttribute("adminMessage", "対象の予約データが見つかりませんでした。");
+            return "redirect:/admin/reservations";
+        }
+
+        // 将预约对象放入 Model，渲染独立编辑页面 reservation-edit.html
+        model.addAttribute("reservation", list.get(0));
+        return "reservation-edit";
+    }
+
+    // 映射 POST /admin/reservations/update（管理员提交保存预约修改）
+    @PostMapping("/admin/reservations/update")
+    public String updateReservationByAdmin(
+            @RequestParam Long id,
+            @RequestParam String catName,
+            @RequestParam String checkInDate,
+            @RequestParam String checkOutDate,
+            @RequestParam String roomType,
+            @RequestParam(required = false) String noteText,
+            HttpSession session,
+            Model model,
+            RedirectAttributes redirectAttributes
+    ) {
+        // 校验管理员登录状态
+        Boolean adminLoggedIn = (Boolean) session.getAttribute("adminLoggedIn");
+        if (adminLoggedIn == null || !adminLoggedIn) {
+            return "redirect:/admin/login";
+        }
+
+        // 查询原订单的客户身份凭证（用于校验失败时回显只读区域，同时防止修改主人姓名、电话、邮箱）
+        String findSql = """
+                SELECT id, reservation_code, owner_name, phone, email
+                FROM reservations
+                WHERE id = ?
+                """;
+        List<Reservation> existingList = jdbcTemplate.query(findSql, (rs, rowNum) -> {
+            Reservation r = new Reservation();
+            r.setId(rs.getLong("id"));
+            r.setReservationCode(rs.getString("reservation_code"));
+            r.setOwnerName(rs.getString("owner_name"));
+            r.setPhone(rs.getString("phone"));
+            r.setEmail(rs.getString("email"));
+            return r;
+        }, id);
+
+        // 若原订单已不存在，直接返回列表页
+        if (existingList.isEmpty()) {
+            return "redirect:/admin/reservations";
+        }
+
+        // 将表单提交的日期字符串解析为 LocalDate 对象
+        LocalDate inDate = LocalDate.parse(checkInDate);
+        LocalDate outDate = LocalDate.parse(checkOutDate);
+
+        // 组装回显对象（保留原有客户只读信息，填入管理员刚填写的修改内容）
+        Reservation formBack = existingList.get(0);
+        formBack.setCatName(catName);
+        formBack.setCheckInDate(inDate);
+        formBack.setCheckOutDate(outDate);
+        formBack.setRoomType(roomType);
+        formBack.setNoteText(noteText);
+
+        // 校验 1：退房日期必须晚于入住日期
+        if (!outDate.isAfter(inDate)) {
+            model.addAttribute("editError", "チェックアウト日はチェックイン日より後の日付を指定してください。");
+            model.addAttribute("reservation", formBack);
+            return "reservation-edit";
+        }
+
+        // 校验 2：余房库存检查（需排除当前正在编辑的订单本身 id != ?，避免把自身算作冲突占用）
+        String countSql = """
+                SELECT COUNT(*)
+                FROM reservations
+                WHERE room_type = ?
+                  AND check_in_date < ?
+                  AND check_out_date > ?
+                  AND id != ?
+                """;
+        Integer reservedCount = jdbcTemplate.queryForObject(countSql, Integer.class, roomType, outDate, inDate, id);
+        int maxRooms = getRoomCapacity(roomType);
+        if (reservedCount != null && reservedCount >= maxRooms) {
+            model.addAttribute("editError", "選択された日程・お部屋タイプは満室のため変更できません。");
+            model.addAttribute("reservation", formBack);
+            return "reservation-edit";
+        }
+
+        // 执行数据库更新（仅更新猫咪名字、入住/退房日期、房型、备注）
+        String updateSql = """
+                UPDATE reservations
+                SET cat_name = ?,
+                    check_in_date = ?,
+                    check_out_date = ?,
+                    room_type = ?,
+                    note_text = ?
+                WHERE id = ?
+                """;
+        jdbcTemplate.update(updateSql, catName.trim(), inDate, outDate, roomType,
+                noteText != null ? noteText.trim() : "", id);
+
+        // 调用 MailService 向客户发送预约变更通知邮件
+        mailService.sendReservationUpdatedMailToCustomer(formBack);
+
+        // 添加操作成功提示并重定向回预约一览表
+        redirectAttributes.addFlashAttribute("adminMessage",
+                "予約内容（" + formBack.getReservationCode() + "）を更新し、お客様へ変更通知メールを送信しました。");
+        return "redirect:/admin/reservations";
+    }
+
+    // 辅助方法：获取各房型的最大房间总数（需与 HomeController 中的房间上限保持一致）
+    private int getRoomCapacity(String roomType) {
+        return switch (roomType) {
+            case "スタンダードルーム" -> 5;
+            case "ファミリー2匹ルーム" -> 3;
+            case "サンシャイン・ラグジュアリールーム" -> 2;
+            default -> 1;
+        };
+    }
+
+    // 映射 POST /admin/api/relogin（超时弹窗异步重新验证）
     @PostMapping("/admin/api/relogin")
     @ResponseBody
     public ResponseEntity<?> apiRelogin(

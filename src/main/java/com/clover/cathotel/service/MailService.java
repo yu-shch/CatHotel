@@ -12,6 +12,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import com.clover.cathotel.model.Reservation;
 
 /**
  * メールの送信を担当するサービス
@@ -126,6 +127,51 @@ public class MailService {
         );
 
         sendWithFallback(adminEmail, subject, content);
+    }
+
+    /**
+     * お客さまへ予約内容変更メールを送信する
+     * 向客户发送预约内容变更通知邮件
+     */
+    public void sendReservationUpdatedMailToCustomer(Reservation reservation) {
+        if (reservation == null || !StringUtils.hasText(reservation.getEmail())) {
+            return;
+        }
+
+        String noteDisplay = StringUtils.hasText(reservation.getNoteText())
+                ? reservation.getNoteText().trim()
+                : "なし";
+
+        String subject = "【クローバー猫ホテル】ご予約内容変更のお知らせ";
+        String content = """
+                %s 様
+
+                いつもクローバー猫ホテルをご利用いただき、誠にありがとうございます。
+                以下の内容でご予約を変更いたしましたので、ご確認をお願いいたします。
+
+                予約番号：%s
+                飼い主さまのお名前：%s
+                猫ちゃんのお名前：%s
+                チェックイン日：%s
+                チェックアウト日：%s
+                お部屋：%s
+                備考：%s
+
+                ご予約内容の確認・取り消しには、予約番号とメールアドレスをご利用ください。
+
+                クローバー猫ホテル
+                """.formatted(
+                reservation.getOwnerName(),
+                reservation.getReservationCode(),
+                reservation.getOwnerName(),
+                reservation.getCatName(),
+                reservation.getCheckInDate(),
+                reservation.getCheckOutDate(),
+                reservation.getRoomType(),
+                noteDisplay
+        );
+
+        sendWithFallback(reservation.getEmail(), subject, content);
     }
 
     // =========================================================================
