@@ -1,61 +1,147 @@
 <!DOCTYPE html>
+<!-- 声明日语页面并引入 Thymeleaf 命名空间 -->
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <!-- 设置字符集编码为 UTF-8 -->
     <meta charset="UTF-8">
+    <!-- 设置响应式视口 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 页面标题 -->
     <title>予約照会</title>
+    <!-- 引入 Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-amber-50 text-slate-800 min-h-screen">
 
+<!-- 居中照会表单主容器 -->
 <main class="max-w-2xl mx-auto px-6 py-16">
+    <!-- 白色圆角卡片 -->
     <div class="bg-white rounded-3xl border border-amber-100 shadow-sm p-8 md:p-10">
+        <!-- 卡片顶部图标、标题与动态模式说明文案 -->
         <div class="text-center">
             <div class="text-5xl mb-4">🔎</div>
             <h1 class="text-3xl font-bold text-slate-900">予約照会</h1>
-            <p class="mt-3 text-slate-600 leading-7">
-                予約番号・メールアドレス・飼い主さまのお名前を入力すると、
-                同じメールアドレスで登録された予約一覧を確認できます。
+            <!-- 说明文案随上方模式切换标签动态变化 -->
+            <p id="modeDesc" class="mt-3 text-slate-600 leading-7">
+                予約番号とメールアドレスを入力すると、該当する予約内容を確認できます。
             </p>
         </div>
 
-        <form th:action="@{/inquiry}" method="post" class="mt-8 space-y-5">
+        <!-- ======================================================== -->
+        <!-- 双模式切换选项卡（按预约编号照会 / 按姓名与邮箱照会）       -->
+        <!-- ======================================================== -->
+        <div class="mt-6 grid grid-cols-2 gap-2 rounded-2xl bg-amber-50/80 p-1.5 border border-amber-100">
+            <!-- 选项卡 1：按预约编号查询 -->
+            <button type="button"
+                    id="btnModeCode"
+                    onclick="switchMode('code')"
+                    class="rounded-xl py-2.5 text-xs sm:text-sm font-semibold transition cursor-pointer">
+                予約番号で照会
+            </button>
+            <!-- 选项卡 2：按宠主姓名与邮箱查询全部历史 -->
+            <button type="button"
+                    id="btnModeHistory"
+                    onclick="switchMode('history')"
+                    class="rounded-xl py-2.5 text-xs sm:text-sm font-semibold transition cursor-pointer">
+                お名前・メールで履歴照会
+            </button>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- 照会提交表单（novalidate 禁用浏览器默认弹窗，统一在顶部红色提示框显示错误） -->
+        <!-- ======================================================== -->
+        <form th:action="@{/inquiry}" method="post" novalidate class="mt-6 space-y-5">
+            <!-- 顶部错误提示框（保持原版统一样式，只显示一句明确日语提示） -->
             <div th:if="${inquiryError}" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
                 <p th:text="${inquiryError}"></p>
             </div>
 
-            <div>
+            <!-- 隐藏域：向后端传递当前选中的查询模式（"code" 或 "history"） -->
+            <input type="hidden" id="searchModeInput" name="searchMode" th:value="${searchMode != null ? searchMode : 'code'}">
+
+            <!-- 输入项 1（模式 1 专属）：予約番号 -->
+            <div id="codeField">
                 <label class="block text-sm font-semibold mb-2">予約番号</label>
-                <input type="text" name="reservationCode" th:value="${reservationCode}"
+                <input type="text" id="reservationCodeInput" name="reservationCode" th:value="${reservationCode}"
                        class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400"
                        placeholder="例：RES-1743829312345">
             </div>
 
-            <div>
-                <label class="block text-sm font-semibold mb-2">メールアドレス</label>
-                <input type="email" name="email" th:value="${email}"
-                       class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                       placeholder="example@mail.com">
-            </div>
-
-            <div>
+            <!-- 输入项 1（模式 2 专属）：飼い主さまのお名前（默认隐藏） -->
+            <div id="historyField" class="hidden">
                 <label class="block text-sm font-semibold mb-2">飼い主さまのお名前</label>
-                <input type="text" name="ownerName" th:value="${ownerName}"
+                <input type="text" id="ownerNameInput" name="ownerName" th:value="${ownerName}"
                        class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400"
                        placeholder="お名前をご入力ください">
             </div>
 
+            <!-- 输入项 2（两种模式通用）：メールアドレス（type="text" 仅做必填校验） -->
+            <div>
+                <label class="block text-sm font-semibold mb-2">メールアドレス</label>
+                <input type="text" id="emailInput" name="email" th:value="${email}"
+                       class="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                       placeholder="example@mail.com">
+            </div>
+
+            <!-- 提交查询按钮 -->
             <button type="submit"
-                    class="w-full rounded-full bg-slate-900 px-6 py-3 text-white font-semibold hover:bg-slate-800">
+                    class="w-full rounded-full bg-slate-900 px-6 py-3 text-white font-semibold hover:bg-slate-800 cursor-pointer">
                 予約を確認する
             </button>
         </form>
 
+        <!-- 底部返回首页链接 -->
         <div class="mt-8 text-center">
             <a href="/" class="text-sm text-slate-500 hover:text-slate-700">トップページへ戻る</a>
         </div>
     </div>
 </main>
 
+<!-- ======================================================== -->
+<!-- 前端交互脚本：控制双模式标签切换与输入框显隐               -->
+<!-- ======================================================== -->
+<script>
+    /**
+     * 切换照会查询模式（'code' = 按预约编号查询 / 'history' = 按姓名与邮箱查询全部历史）
+     *
+     * @param {string} mode 目标查询模式字符串
+     */
+    function switchMode(mode) {
+        const modeInput = document.getElementById('searchModeInput');
+        const btnCode = document.getElementById('btnModeCode');
+        const btnHistory = document.getElementById('btnModeHistory');
+        const codeField = document.getElementById('codeField');
+        const historyField = document.getElementById('historyField');
+        const desc = document.getElementById('modeDesc');
+
+        // 同步更新隐藏域值，确保提交表单时后端能识别当前模式
+        modeInput.value = mode;
+
+        if (mode === 'history') {
+            // 高亮“お名前・メールで履歴照会”选项卡，取消“予約番号で照会”高亮
+            btnHistory.className = 'rounded-xl py-2.5 text-xs sm:text-sm font-semibold bg-white text-slate-900 shadow-xs transition cursor-pointer';
+            btnCode.className = 'rounded-xl py-2.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-700 transition cursor-pointer';
+            // 隐藏预约编号框，显示宠主姓名框
+            codeField.classList.add('hidden');
+            historyField.classList.remove('hidden');
+            // 更新顶部提示说明文字
+            desc.textContent = '飼い主さまのお名前とメールアドレスを入力すると、過去を含むご自身の予約履歴をすべて確認できます。';
+        } else {
+            // 高亮“予約番号で照会”选项卡，取消“お名前・メールで履歴照会”高亮
+            btnCode.className = 'rounded-xl py-2.5 text-xs sm:text-sm font-semibold bg-white text-slate-900 shadow-xs transition cursor-pointer';
+            btnHistory.className = 'rounded-xl py-2.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-700 transition cursor-pointer';
+            // 隐藏宠主姓名框，显示预约编号框
+            historyField.classList.add('hidden');
+            codeField.classList.remove('hidden');
+            // 更新顶部提示说明文字
+            desc.textContent = '予約番号とメールアドレスを入力すると、該当する予約内容を確認できます。';
+        }
+    }
+
+    // 页面 DOM 加载完成后，根据后端回显的 searchMode 自动初始化对应的标签激活状态
+    document.addEventListener('DOMContentLoaded', function () {
+        switchMode(document.getElementById('searchModeInput').value || 'code');
+    });
+</script>
 </body>
 </html>
