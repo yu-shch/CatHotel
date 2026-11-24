@@ -65,7 +65,6 @@ public class InquiryController {
      * 映射 GET /inquiry 请求：渲染顾客预约照会输入页面
      * 支持从 URL 查询参数接收预填信息（例如从预约完成页跳转过来时自动填入单号与邮箱）
      *
-     * @param searchMode      查询模式（"code"=按预约编号查，"history"=按姓名与邮箱查历史，默认 "code"）
      * @param reservationCode URL 预填的预约编号（非必填）
      * @param email           URL 预填的电子邮箱（非必填）
      * @param ownerName       URL 预填的宠主姓名（非必填）
@@ -74,8 +73,6 @@ public class InquiryController {
      */
     @GetMapping("/inquiry")
     public String inquiryPage(
-            // 接收查询模式参数，未传时默认设为 "code"
-            @RequestParam(required = false, defaultValue = "code") String searchMode,
             // 接收 URL 中的预约编号参数
             @RequestParam(required = false) String reservationCode,
             // 接收 URL 中的电子邮箱参数
@@ -85,17 +82,13 @@ public class InquiryController {
             // 注入视图模型容器
             Model model
     ) {
-        // 规范化查询模式（防止传入非法字符串），写入 Model 供前端 JS 初始化切换标签
-        model.addAttribute("searchMode", "history".equals(searchMode) ? "history" : "code");
-        // 若 URL 携带了预约编号，则放入 Model 供输入框回显
+        // 若 URL 携带了参数，则放入 Model 供输入框回显
         if (reservationCode != null) {
             model.addAttribute("reservationCode", reservationCode);
         }
-        // 若 URL 携带了电子邮箱，则放入 Model 供输入框回显
         if (email != null) {
             model.addAttribute("email", email);
         }
-        // 若 URL 携带了宠主姓名，则放入 Model 供输入框回显
         if (ownerName != null) {
             model.addAttribute("ownerName", ownerName);
         }
@@ -104,19 +97,10 @@ public class InquiryController {
     }
 
     /**
-     * 映射 POST /inquiry 请求：执行单条精简必填校验与双模式预约查询
-     *
-     * @param searchMode      当前提交的查询模式（"code" 或 "history"）
-     * @param reservationCode 用户输入的预约编号（模式 1 必填）
-     * @param email           用户输入的电子邮箱（两种模式均必填）
-     * @param ownerName       用户输入的宠主姓名（模式 2 必填）
-     * @param model           Spring MVC 视图模型对象
-     * @return 校验失败返回 "inquiry"，查询成功返回 "inquiry-result"
+     * 映射 POST /inquiry 请求：邮箱必填 +（预约编号 / 宠主姓名 二选一或全填）统一查询
      */
     @PostMapping("/inquiry")
     public String inquirySearch(
-            // 获取查询模式，默认 "code"
-            @RequestParam(defaultValue = "code") String searchMode,
             // 获取预约编号，未传时默认为空字符串防止空指针
             @RequestParam(required = false, defaultValue = "") String reservationCode,
             // 获取电子邮箱，未传时默认为空字符串
@@ -126,79 +110,73 @@ public class InquiryController {
             // 视图模型容器
             Model model
     ) {
-        // 规范化查询模式为 "code" 或 "history"
-        String mode = "history".equals(searchMode) ? "history" : "code";
         // 去除用户输入内容首尾的空白字符
         String trimmedEmail = email.trim();
         String trimmedCode = reservationCode.trim();
         String trimmedOwnerName = ownerName.trim();
 
+        // 根据是否填写了预约编号，自动推导兼容现有结果页的展示模式（有单号精准定位该单，无单号展示最新订单）
+        String derivedMode = !trimmedCode.isEmpty() ? "code" : "history";
+
         // --------------------------------------------------------
-        // 第 1 步：单条精简日语必填校验（仅在顶部提示框显示一句提示，不做内容格式检查）
+        // 第 1 步：单条精简日语必填校验（邮箱必填 + 预约编号/姓名至少填一项）
         // --------------------------------------------------------
         String errorMessage = null;
 
-        if ("code".equals(mode)) {
-            // 模式 1（按预约编号查询）：判断单号与邮箱是否为空
-            if (trimmedCode.isEmpty() && trimmedEmail.isEmpty()) {
-                errorMessage = "予約番号とメールアドレスを入力してください。";
-            } else if (trimmedCode.isEmpty()) {
-                errorMessage = "予約番号を入力してください。";
-            } else if (trimmedEmail.isEmpty()) {
-                errorMessage = "メールアドレスを入力してください。";
-            }
-        } else {
-            // 模式 2（按姓名与邮箱查询）：判断姓名与邮箱是否为空
-            if (trimmedOwnerName.isEmpty() && trimmedEmail.isEmpty()) {
-                errorMessage = "お名前とメールアドレスを入力してください。";
-            } else if (trimmedOwnerName.isEmpty()) {
-                errorMessage = "飼い主さまのお名前を入力してください。";
-            } else if (trimmedEmail.isEmpty()) {
-                errorMessage = "メールアドレスを入力してください。";
-            }
+        if (trimmedEmail.isEmpty() && trimmedCode.isEmpty() && trimmedOwnerName.isEmpty()) {
+            errorMessage = "メールアドレスと、予約番号またはお名前を入力してください。";
+        } else if (trimmedEmail.isEmpty()) {
+            errorMessage = "メールアドレスを入力してください。";
+        } else if (trimmedCode.isEmpty() && trimmedOwnerName.isEmpty()) {
+            errorMessage = "予約番号または飼い主さまのお名前のいずれかを入力してください。";
         }
 
         // 若存在未填项，写入单条 inquiryError 并退回查询页
         if (errorMessage != null) {
             model.addAttribute("inquiryError", errorMessage);
-            restoreFormModel(model, mode, trimmedCode, trimmedEmail, trimmedOwnerName);
+            restoreFormModel(model, derivedMode, trimmedCode, trimmedEmail, trimmedOwnerName);
             return "inquiry";
         }
 
         // --------------------------------------------------------
         // 第 2 步：根据邮箱检索候选预约记录
         // --------------------------------------------------------
-        // 忽略邮箱大小写查询数据库中匹配该邮箱的所有预约记录
         List<Reservation> emailMatchedList = findReservationsByEmail(trimmedEmail);
-        // 若该邮箱没有任何预约记录，提示未找到并返回查询页
         if (emailMatchedList.isEmpty()) {
             model.addAttribute("inquiryError", "入力した情報に一致する予約が見つかりませんでした。");
-            restoreFormModel(model, mode, trimmedCode, trimmedEmail, trimmedOwnerName);
+            restoreFormModel(model, derivedMode, trimmedCode, trimmedEmail, trimmedOwnerName);
             return "inquiry";
         }
 
         // --------------------------------------------------------
-        // 第 3 步：身份核验并锁定当前查询本人的姓名（防止同邮箱不同姓名串号）
+        // 第 3 步：身份核验并锁定当前查询本人的姓名（支持只填编号、只填姓名、或两者都填）
         // --------------------------------------------------------
-        // 用于保存核验通过后的本人数据库姓名
         String resolvedOwnerName = null;
+        String targetCode = trimmedCode.toUpperCase();
+        String targetNormName = normalizeText(trimmedOwnerName);
 
-        if ("code".equals(mode)) {
-            // 模式 1：将输入的预约编号转为大写，逐条比对该邮箱名下的订单编号
-            String targetCode = trimmedCode.toUpperCase();
-            for (Reservation r : emailMatchedList) {
-                if (r.getReservationCode() != null && r.getReservationCode().trim().toUpperCase().equals(targetCode)) {
-                    // 命中目标编号后，提取该笔预约登记的宠主姓名作为本人标识
+        for (Reservation r : emailMatchedList) {
+            boolean codeMatches = !trimmedCode.isEmpty()
+                    && r.getReservationCode() != null
+                    && r.getReservationCode().trim().toUpperCase().equals(targetCode);
+            boolean nameMatches = !trimmedOwnerName.isEmpty()
+                    && normalizeText(r.getOwnerName()).equals(targetNormName);
+
+            if (!trimmedCode.isEmpty() && !trimmedOwnerName.isEmpty()) {
+                // 情况 A：编号与姓名都填了 -> 必须同一条记录同时满足
+                if (codeMatches && nameMatches) {
                     resolvedOwnerName = r.getOwnerName();
                     break;
                 }
-            }
-        } else {
-            // 模式 2：清洗输入姓名的全半角空格后，与候选记录的宠主姓名进行比对
-            String targetNormName = normalizeText(trimmedOwnerName);
-            for (Reservation r : emailMatchedList) {
-                if (normalizeText(r.getOwnerName()).equals(targetNormName)) {
-                    // 邮箱与姓名双重匹配成功，记录本人姓名
+            } else if (!trimmedCode.isEmpty()) {
+                // 情况 B：只填了编号 -> 匹配编号并提取本人姓名
+                if (codeMatches) {
+                    resolvedOwnerName = r.getOwnerName();
+                    break;
+                }
+            } else {
+                // 情况 C：只填了姓名 -> 匹配姓名并提取本人姓名
+                if (nameMatches) {
                     resolvedOwnerName = r.getOwnerName();
                     break;
                 }
@@ -208,7 +186,7 @@ public class InquiryController {
         // 若未找到匹配的编号或姓名，返回未找到提示并保留输入内容
         if (resolvedOwnerName == null) {
             model.addAttribute("inquiryError", "入力した情報に一致する予約が見つかりませんでした。");
-            restoreFormModel(model, mode, trimmedCode, trimmedEmail, trimmedOwnerName);
+            restoreFormModel(model, derivedMode, trimmedCode, trimmedEmail, trimmedOwnerName);
             return "inquiry";
         }
 
@@ -220,10 +198,9 @@ public class InquiryController {
         // --------------------------------------------------------
         // 第 5 步：组装结果页所需数据模型并跳转至 inquiry-result.html
         // --------------------------------------------------------
-        populateResultModel(model, mode, trimmedCode, trimmedEmail, resolvedOwnerName, personReservations);
+        populateResultModel(model, derivedMode, trimmedCode, trimmedEmail, resolvedOwnerName, personReservations);
         return "inquiry-result";
     }
-
     /**
      * 映射 POST /inquiry/update 请求：处理顾客在弹窗中提交的预约内容修改
      * 支持修改字段：猫咪姓名（catName）、入住日期（checkInDate）、退房日期（checkOutDate）、房型（roomType）、备注（noteText）
